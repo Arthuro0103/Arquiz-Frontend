@@ -36,7 +36,7 @@ if (!BASE_URL) {
 }
 
 
-// --- Server Actions ---
+// --- Server Actions --- 
 
 export async function saveQuiz(quizData: Omit<Quiz, 'id'>): Promise<ActionResult> {
   console.log("[Server Action] saveQuiz: Tentando salvar quiz:", quizData.title);
@@ -64,7 +64,7 @@ export async function saveQuiz(quizData: Omit<Quiz, 'id'>): Promise<ActionResult
     revalidatePath('/quizzes');
     revalidatePath('/rooms/create'); // Se a criação de salas depende da lista de quizzes
 
-    return {
+  return {
       success: true, // ou result.success se o backend enviar
       message: result.message || `Quiz "${quizData.title}" salvo com sucesso.`,
       quizId: result.quizId || result.id, // Ajustar conforme o campo retornado pelo backend
@@ -99,15 +99,15 @@ export async function updateQuiz(quizId: string, quizData: Partial<Omit<Quiz, 'i
     console.log("[Server Action] updateQuiz: Quiz atualizado com sucesso:", quizId);
 
     revalidatePath(`/quizzes/${quizId}`);
-    revalidatePath('/quizzes');
-    revalidatePath('/dashboard');
+  revalidatePath('/quizzes');
+  revalidatePath('/dashboard');
     revalidatePath('/rooms/create');
 
-    return {
+  return {
       success: true, // ou result.success
       message: result.message || `Quiz atualizado com sucesso.`,
-      quizId: quizId,
-    };
+    quizId: quizId,
+  };
   } catch (error: unknown) {
     console.error("[Server Action] updateQuiz: Erro de fetch", error);
     const message = error instanceof Error ? error.message : "Erro de rede ou interno ao tentar atualizar quiz.";
@@ -144,14 +144,14 @@ export async function deleteQuiz(quizId: string): Promise<ActionResult> {
 
     console.log("[Server Action] deleteQuiz: Quiz deletado com sucesso:", quizId);
 
-    revalidatePath('/quizzes');
-    revalidatePath('/dashboard');
+  revalidatePath('/quizzes');
+  revalidatePath('/dashboard');
     revalidatePath('/rooms/create');
 
-    return {
-      success: true,
+  return {
+    success: true,
       message: successMessage,
-    };
+  };
   } catch (error: unknown) {
     console.error("[Server Action] deleteQuiz: Erro de fetch", error);
     const message = error instanceof Error ? error.message : "Erro de rede ou interno ao tentar deletar quiz.";

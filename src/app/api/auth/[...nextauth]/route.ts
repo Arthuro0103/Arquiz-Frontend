@@ -73,7 +73,7 @@ const authorize = async (credentials: Record<string, string> | undefined): Promi
           const errorData = JSON.parse(responseBodyText);
           errorMessage = errorData.message || errorMessage;
           console.warn("[Authorize] Erro da API (JSON parseado):", errorData);
-        } catch (e) {
+        } catch (_e) {
           // Se não for JSON, usamos o texto bruto como parte da mensagem se disponível
           errorMessage = `${errorMessage} Resposta: ${responseBodyText}`;
           console.warn("[Authorize] Erro da API (não JSON):", responseBodyText);
@@ -100,9 +100,9 @@ const authorize = async (credentials: Record<string, string> | undefined): Promi
       return null; // Se a resposta era OK mas não era JSON válido, algo está errado.
     }
     
-    // Estrutura esperada da resposta do backend: { accessToken: "...", user: { id, name, email, role } } 
-    // OU { accessToken: "...", id, name, email, role }
-    if (data && data.accessToken && (data.user || data.id)) {
+    // Estrutura esperada da resposta do backend: { access_token: "...", user: { id, name, email, role } } 
+    // OU { access_token: "...", id, name, email, role }
+    if (data && data.access_token && (data.user || data.id)) {
       const userData = data.user || data; // Pega o objeto de usuário, esteja ele aninhado ou não
       if (!userData.id) {
         console.error("[Authorize] Resposta da API OK, mas data.user.id ou data.id ausente. Resposta:", data);
@@ -116,12 +116,12 @@ const authorize = async (credentials: Record<string, string> | undefined): Promi
         email: userData.email,
         role: userData.role,
         image: userData.image || null, // Mapeie a imagem se vier do backend
-        accessToken: data.accessToken, // Adiciona o accessToken ao objeto AppUser
+        accessToken: data.access_token,
       };
       console.log("[Authorize] Objeto AppUser mapeado:", appUser);
       return appUser;
     } else {
-      console.error("[Authorize] Resposta da API de login OK, mas não contém accessToken ou dados do usuário esperados. Resposta:", data);
+      console.error("[Authorize] Resposta da API de login OK, mas não contém access_token ou dados do usuário esperados. Resposta:", data);
       return null;
     }
   } catch (error) {
@@ -152,57 +152,57 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/login', // Página de login personalizada
-    // signOut: '/auth/signout', // Página de logout personalizada (opcional)
+    signOut: '/login', // Página de logout personalizada (opcional)
     // error: '/auth/error', // Página de erro de autenticação (opcional)
     // verifyRequest: '/auth/verify-request', // Página para verificar e-mail (opcional)
     // newUser: '/auth/new-user' // Página para novos usuários (opcional)
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      console.log("[JWT Callback] Trigger:", trigger);
-      if (user) { // Login inicial
+      console.log("[JWT Callback] Executando. Trigger:", trigger);
+      console.log("[JWT Callback] Token ANTES da modificação:", JSON.stringify(token));
+      if (user) { // Login inicial ou refresh de token com novos dados de usuário
+        console.log("[JWT Callback] Usuário (user) presente (login inicial/refresh):", JSON.stringify(user));
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
-        token.role = (user as AppUser).role;
-        token.image = (user as AppUser).image; // Adicionar imagem no login inicial
-        token.accessToken = (user as AppUser).accessToken;
-        console.log("[JWT Callback] Login inicial. Token populado:", token);
+        token.role = (user as AppUser).role; // Casting para AppUser para acessar role e accessToken
+        token.image = (user as AppUser).image;
+        token.accessToken = (user as AppUser).accessToken; // Este é o token do SEU backend
+        console.log("[JWT Callback] Token DEPOIS da modificação (com user):", JSON.stringify(token));
       }
 
-      // Se o trigger for "update" e a sessão (newSessionData) estiver presente
       if (trigger === "update" && session) {
-        console.log("[JWT Callback] Trigger é UPDATE. Session (new data) recebida:", session);
-        // Atualizar o token com os novos dados da sessão
-        // Verifique se `session.user` existe, pois é o que passamos em `updateSession({ user: { ... }})`
+        console.log("[JWT Callback] Trigger é UPDATE. Session (new data) recebida:", JSON.stringify(session));
         if (session.user) {
             if (session.user.role !== undefined) {
                 token.role = session.user.role;
-                console.log("[JWT Callback] Role atualizado no token para:", token.role);
             }
-            if (session.user.image !== undefined) { // Permite definir image como null
+            if (session.user.image !== undefined) {
                 token.image = session.user.image;
-                console.log("[JWT Callback] Image atualizada no token para:", token.image);
             }
-            // Adicione outros campos que você quer que sejam atualizáveis da mesma forma
-            // Ex: if (session.user.name) token.name = session.user.name;
+            // Adicione outros campos atualizáveis aqui se necessário
         }
+        console.log("[JWT Callback] Token DEPOIS da modificação (update):", JSON.stringify(token));
       }
       return token;
     },
     async session({ session, token }) {
+      console.log("[Session Callback] Executando.");
+      console.log("[Session Callback] Session ANTES da modificação:", JSON.stringify(session));
+      console.log("[Session Callback] Token recebido do callback jwt:", JSON.stringify(token));
       // Popula session.user com os dados do token JWT
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
-        session.user.name = token.name as string; // Garantir que name esteja na sessão
-        session.user.email = token.email as string; // Garantir que email esteja na sessão
-        session.user.image = token.image as string | null; // Adicionar imagem à sessão do cliente
+        session.user.name = token.name as string; 
+        session.user.email = token.email as string; 
+        session.user.image = token.image as string | null; 
       }
       if (token.accessToken) {
-        (session as any).accessToken = token.accessToken as string;
+        session.accessToken = token.accessToken as string;
       }
-      console.log("[Session Callback] Sessão final a ser retornada:", session);
+      console.log("[Session Callback] Session DEPOIS da modificação:", JSON.stringify(session));
       return session;
     },
   },

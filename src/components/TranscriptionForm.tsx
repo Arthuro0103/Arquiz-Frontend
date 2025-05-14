@@ -96,7 +96,7 @@ export default function TranscriptionForm() {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Ocorreu um erro inesperado ao processar a transcrição.');
+      setError('Ocorreu um erro inesperado ao processar a transcrição.');
       }
     } finally {
       setIsSubmitting(false);

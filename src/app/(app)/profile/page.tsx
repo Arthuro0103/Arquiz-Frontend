@@ -8,6 +8,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input'; // Importar Input
 import { Label } from '@/components/ui/label'; // Importar Label
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog"; // Importar Dialog
+import { signOut } from "next-auth/react"; // Para deslogar após deletar
+import { deleteCurrentUserAccount } from '@/actions/userActions'; // Importar a nova action
 
 // Definindo um tipo para o usuário da sessão para clareza
 // Certifique-se que este tipo corresponde à sua definição em next-auth.d.ts se você estendeu Session.User
@@ -22,6 +34,10 @@ export default function ProfilePage() {
   const { data: session, update: updateSession, status } = useSession(); // Obter sessão e função de update
   const [newImageUrl, setNewImageUrl] = useState('');
   const [currentSessionUser, setCurrentSessionUser] = useState<SessionUser | undefined>(session?.user as SessionUser | undefined);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (session?.user) {
@@ -81,6 +97,33 @@ export default function ProfilePage() {
     } catch (error) {
       console.error("Erro ao tentar atualizar a imagem do perfil:", error);
     }
+  };
+
+  const handleDeleteAccountAttempt = () => {
+    setPassword(''); // Limpa a senha ao abrir o modal
+    setDeleteError(null); // Limpa erros anteriores
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!password) {
+      setDeleteError("Por favor, insira sua senha.");
+      return;
+    }
+    setIsDeleting(true);
+    setDeleteError(null);
+    console.log("Tentando deletar conta com senha fornecida.");
+
+    const result = await deleteCurrentUserAccount(password);
+
+    if (result.success) {
+      setIsDeleteDialogOpen(false);
+      alert("Conta deletada com sucesso! Você será deslogado."); // Placeholder para feedback melhor
+      await signOut({ callbackUrl: 'http://localhost:8888/login' }); // Deslogar e redirecionar para a home
+    } else {
+      setDeleteError(result.message || "Falha ao deletar conta. Verifique sua senha ou tente mais tarde.");
+    }
+    setIsDeleting(false);
   };
 
   return (
@@ -144,6 +187,62 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">Suas estatísticas de quizzes e competições aparecerão aqui em breve.</p>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">Configurações da Conta</CardTitle>
+          <CardDescription>
+            Ações permanentes relacionadas à sua conta.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="destructive" onClick={handleDeleteAccountAttempt}>
+                Deletar Minha Conta
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Confirmar Exclusão da Conta</DialogTitle>
+                <DialogDescription>
+                  Esta ação é irreversível. Todos os seus dados serão permanentemente removidos.
+                  Para confirmar, por favor, digite sua senha atual.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="password-confirm-delete" className="text-right">
+                    Senha
+                  </Label>
+                  <Input
+                    id="password-confirm-delete"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="col-span-3"
+                    placeholder="Sua senha atual"
+                  />
+                </div>
+                {deleteError && (
+                  <p className="text-sm text-red-500 col-span-4 text-center">{deleteError}</p>
+                )}
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline" disabled={isDeleting}>Cancelar</Button>
+                </DialogClose>
+                <Button type="submit" variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting || !password}>
+                  {isDeleting ? "Deletando..." : "Confirmar Exclusão"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <p className="text-sm text-muted-foreground mt-2">
+            Ao deletar sua conta, todos os seus quizzes, salas e outros dados associados serão perdidos.
+          </p>
         </CardContent>
       </Card>
       

@@ -52,7 +52,7 @@ export default function JoinRoomPage() {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Ocorreu um erro inesperado.');
+      setError('Ocorreu um erro inesperado.');
       }
     } finally {
       setIsSubmitting(false);

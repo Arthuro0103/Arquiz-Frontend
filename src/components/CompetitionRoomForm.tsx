@@ -85,7 +85,7 @@ export function CompetitionRoomForm() {
     } catch (error: unknown) {
       console.error("Erro ao criar sala:", error);
       if (error instanceof Error) {
-        setResult({ success: false, message: `Erro inesperado: ${error.message}` });
+      setResult({ success: false, message: `Erro inesperado: ${error.message}` });
       } else {
         setResult({ success: false, message: "Ocorreu um erro inesperado ao criar a sala." });
       }

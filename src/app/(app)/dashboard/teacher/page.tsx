@@ -22,14 +22,19 @@ interface DashboardStats {
   averageScore: number | string;
 }
 
-const BACKEND_API_URL = 'http://localhost:3000';
+// const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL; 
+const BACKEND_API_URL = "http://localhost:3000"; // ALTERADO DE HTTPS PARA HTTP
 
 async function fetchDashboardData(accessToken: string): Promise<DashboardStats> {
   let totalQuizzes = 0;
   let activeCompetitions = 0;
 
   try {
-    const quizzesResponse = await fetch(`${BACKEND_API_URL}/quizzes`, {
+    if (!BACKEND_API_URL) {
+      console.error('[DashboardData] Critical Error: NEXT_PUBLIC_BACKEND_API_URL is not defined.');
+      throw new Error("Configuração da URL da API do backend não encontrada.");
+    }
+    const quizzesResponse = await fetch(`${BACKEND_API_URL}/quizzes/my`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -47,18 +52,22 @@ async function fetchDashboardData(accessToken: string): Promise<DashboardStats> 
   }
 
   try {
-    const roomsResponse = await fetch(`${BACKEND_API_URL}/rooms`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (roomsResponse.ok) {
-      const rooms: Room[] = await roomsResponse.json();
-      activeCompetitions = rooms.filter(room => room.status === 'em andamento' || room.status === 'aguardando').length;
-      console.log('[DashboardData] Rooms fetched:', rooms.length, 'Active:', activeCompetitions);
+    if (!BACKEND_API_URL) {
+      console.error('[DashboardData] Critical Error: NEXT_PUBLIC_BACKEND_API_URL is not defined (for rooms).');
     } else {
-      console.error('[DashboardData] Failed to fetch rooms:', roomsResponse.status, await roomsResponse.text());
+      const roomsResponse = await fetch(`${BACKEND_API_URL}/rooms`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (roomsResponse.ok) {
+        const rooms: Room[] = await roomsResponse.json();
+        activeCompetitions = rooms.filter(room => room.status === 'em andamento' || room.status === 'aguardando').length;
+        console.log('[DashboardData] Rooms fetched:', rooms.length, 'Active:', activeCompetitions);
+      } else {
+        console.error('[DashboardData] Failed to fetch rooms:', roomsResponse.status, await roomsResponse.text());
+      }
     }
   } catch (error) {
     console.error('[DashboardData] Error fetching rooms:', error);
@@ -72,6 +81,7 @@ async function fetchDashboardData(accessToken: string): Promise<DashboardStats> 
 }
 
 const mainSections = [
+  { href: '/transcriptions', title: 'Gerenciar Transcrições', description: 'Faça upload e gerencie suas transcrições para criar quizzes.' },
   { href: '/quizzes', title: 'Gerenciar Quizzes', description: 'Crie, edite e visualize seus quizzes.' },
   { href: '/rooms', title: 'Salas de Competição', description: 'Crie e gerencie salas para suas competições.' },
   { href: '/compete', title: 'Entrar em Competição', description: 'Participe de uma competição usando um código.' },

@@ -39,7 +39,7 @@ export default async function QuizzesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">Nenhum quiz encontrado. Clique em "Criar Novo Quiz" para começar.</p>
+          <p className="text-muted-foreground">Nenhum quiz encontrado. Clique em &quot;Criar Novo Quiz&quot; para começar.</p>
           {/* TODO: Listar quizzes reais aqui, com opção de associar/ver transcrição */}
         </CardContent>
       </Card>

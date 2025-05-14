@@ -9,13 +9,13 @@ const TeacherDashboardPageContent = React.lazy(() => import('./teacher/page'));
 const StudentDashboardPageContent = React.lazy(() => import('./student/page'));
 
 function DashboardLoading() {
-    return (
+  return (
         <div className="container mx-auto p-4 md:p-6 lg:p-8">
             <h1 className="text-3xl font-bold mb-6">Carregando Dashboard...</h1>
             <p>Aguarde enquanto preparamos seu painel.</p>
-        </div>
-    );
-}
+    </div>
+  );
+} 
 
 export default async function DashboardPageRouter() {
     const sessionData = await getServerSession(authOptions) as Session | null;
