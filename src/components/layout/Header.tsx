@@ -19,7 +19,7 @@ export default function Header() {
             <span className="text-sm text-muted-foreground hidden sm:inline-block">
               Olá, {session.user.name || session.user.email}
             </span>
-            <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: '/login' })}>
+            <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: 'http://localhost:8888/login' })}>
               Sair
             </Button>
           </>

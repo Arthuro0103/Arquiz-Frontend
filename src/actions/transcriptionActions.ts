@@ -79,8 +79,8 @@ export interface Transcription {
   name: string;
   description?: string;
   userId: string;
-  createdAt: string; 
-  // content: string; // O conteúdo pode ser grande, buscar apenas quando necessário ou em uma rota específica
+  createdAt: string;
+  content?: string; // O conteúdo pode ser grande, buscar apenas quando necessário ou em uma rota específica
 }
 
 export interface ApiResponse<T> {
@@ -134,6 +134,41 @@ export async function getTranscriptions(): Promise<ApiResponse<Transcription[]>>
   } catch (error) {
     console.error("[Server Action] getTranscriptions: Exceção ao buscar transcrições:", error);
     return { success: false, message: 'Ocorreu um erro inesperado ao buscar as transcrições.', error };
+  }
+}
+
+export async function getTranscriptionById(id: string): Promise<ApiResponse<Transcription>> {
+  console.log(`[Server Action] getTranscriptionById: Buscando transcrição ${id}.`);
+  const session = await getServerSession(authOptions) as Session | null;
+
+  if (!session || !session.accessToken) {
+    console.error(`[Server Action] getTranscriptionById: Sessão ou accessToken não encontrado para buscar transcrição ${id}.`);
+    return { success: false, message: 'Usuário não autenticado.' };
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_API_URL}/transcriptions/${id}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`[Server Action] getTranscriptionById: Erro da API ao buscar transcrição ${id}`, response.status, errorData);
+      return { success: false, message: `Falha ao buscar transcrição: ${response.statusText} - ${errorData}` };
+    }
+
+    const transcription: Transcription = await response.json();
+    // O backend já deve retornar a transcrição com o campo 'name' mapeado e o 'content'.
+    console.log(`[Server Action] getTranscriptionById: Transcrição ${id} recebida com sucesso.`);
+    return { success: true, data: transcription };
+
+  } catch (error) {
+    console.error(`[Server Action] getTranscriptionById: Exceção ao buscar transcrição ${id}:`, error);
+    return { success: false, message: 'Ocorreu um erro inesperado ao buscar a transcrição.', error };
   }
 }
 
@@ -191,5 +226,95 @@ export async function addTranscription(formData: { name: string; description?: s
   } catch (error) {
     console.error("[Server Action] addTranscription: Exceção ao adicionar transcrição:", error);
     return { success: false, message: 'Ocorreu um erro inesperado ao adicionar a transcrição.', error };
+  }
+}
+
+export interface UpdateTranscriptionData {
+  name?: string;
+  description?: string;
+  content?: string; // Adicionar content se for editável por aqui também
+}
+
+export async function editTranscription(id: string, data: UpdateTranscriptionData): Promise<ApiResponse<Transcription>> {
+  console.log(`[Server Action] editTranscription: Editando transcrição ${id} com dados:`, data);
+  const session = await getServerSession(authOptions) as Session | null;
+
+  if (!session || !session.accessToken) {
+    console.error("[Server Action] editTranscription: Sessão ou accessToken não encontrado.");
+    return { success: false, message: 'Usuário não autenticado.' };
+  }
+
+  // No backend, o DTO de update espera `title` em vez de `name`.
+  // Precisamos mapear `name` para `title` se `name` estiver presente em `data`.
+  const backendData: { title?: string; description?: string; content?: string } = { ...data };
+  if (data.name !== undefined) {
+    backendData.title = data.name;
+    delete (backendData as any).name; // Remove 'name' para não enviar ao backend
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_API_URL}/transcriptions/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${session.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(backendData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("[Server Action] editTranscription: Erro da API", response.status, errorData);
+      return { success: false, message: `Falha ao editar transcrição: ${response.statusText} - ${errorData}` };
+    }
+
+    const updatedTranscription: Transcription = await response.json();
+    // O backend já deve retornar a transcrição com o campo 'name' mapeado.
+    console.log("[Server Action] editTranscription: Transcrição editada com sucesso:", updatedTranscription.id);
+    revalidatePath('/(app)/transcriptions'); // Revalida a página de transcrições
+    return { success: true, data: updatedTranscription };
+
+  } catch (error) {
+    console.error("[Server Action] editTranscription: Exceção ao editar transcrição:", error);
+    return { success: false, message: 'Ocorreu um erro inesperado ao editar a transcrição.', error };
+  }
+}
+
+export async function deleteTranscription(id: string): Promise<ApiResponse<null>> { // Retorna null em data para delete
+  console.log(`[Server Action] deleteTranscription: Deletando transcrição ${id}`);
+  const session = await getServerSession(authOptions) as Session | null;
+
+  if (!session || !session.accessToken) {
+    console.error("[Server Action] deleteTranscription: Sessão ou accessToken não encontrado.");
+    return { success: false, message: 'Usuário não autenticado.' };
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_API_URL}/transcriptions/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${session.accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      // Para DELETE, a resposta de sucesso pode ser 204 No Content, sem body JSON.
+      // Se for 200 OK com body, response.json() funcionaria. Se 204, não.
+      // O NestJS por padrão retorna 200 OK em @Delete se nada for retornado explicitamente, ou 204 se retornar void.
+      // Vamos assumir que se não for OK, é um erro com corpo de texto.
+      const errorData = await response.text(); 
+      console.error("[Server Action] deleteTranscription: Erro da API", response.status, errorData);
+      return { success: false, message: `Falha ao deletar transcrição: ${response.statusText} - ${errorData}` };
+    }
+    
+    // Se o status for 204 (No Content) ou 200 (OK), consideramos sucesso.
+    // Não tentamos fazer response.json() se for 204 pois daria erro.
+    console.log("[Server Action] deleteTranscription: Transcrição deletada com sucesso:", id);
+    revalidatePath('/(app)/transcriptions'); // Revalida a página de transcrições
+    return { success: true, data: null };
+
+  } catch (error) {
+    console.error("[Server Action] deleteTranscription: Exceção ao deletar transcrição:", error);
+    return { success: false, message: 'Ocorreu um erro inesperado ao deletar a transcrição.', error };
   }
 } 

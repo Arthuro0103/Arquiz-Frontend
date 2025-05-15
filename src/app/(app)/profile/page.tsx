@@ -61,6 +61,42 @@ export default function ProfilePage() {
 
   const { name, email, role, image: profileImageUrl } = currentSessionUser;
 
+  // Helper para chamar o backend e atualizar o perfil
+  const updateProfileOnBackend = async (dataToUpdate: { role?: string; profileImageUrl?: string; name?: string }) => {
+    if (!session?.accessToken) {
+      console.error("updateProfileOnBackend: Sem accessToken na sessão.");
+      throw new Error("Não autenticado para atualizar perfil no backend.");
+    }
+    const backendApiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+    if (!backendApiUrl) {
+      console.error("updateProfileOnBackend: NEXT_PUBLIC_BACKEND_API_URL não está definida.");
+      throw new Error("Configuração da URL da API do backend não encontrada no cliente.");
+    }
+
+    try {
+      const response = await fetch(`${backendApiUrl}/auth/me/profile`, { // CORRIGIDO para usar backendApiUrl
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.accessToken}`, // O token da sessão NextAuth é o token do backend
+        },
+        body: JSON.stringify(dataToUpdate),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: response.statusText }));
+        console.error("Erro ao atualizar perfil no backend:", errorData);
+        throw new Error(errorData.message || 'Falha ao atualizar perfil no backend.');
+      }
+      const updatedBackendUser = await response.json();
+      console.log("Perfil atualizado com sucesso no backend:", updatedBackendUser);
+      return updatedBackendUser;
+    } catch (error) {
+      console.error("Exceção em updateProfileOnBackend:", error);
+      throw error;
+    }
+  };
+
   const handleRoleToggle = async () => {
     const newRole = role === 'student' ? 'teacher' : 'student';
     try {
@@ -77,6 +113,24 @@ export default function ProfilePage() {
       console.log("Tentativa de atualizar papel para:", newRole);
       // A sessão PODE ser atualizada automaticamente pelo NextAuth e disparar o useEffect,
       // mas esta atualização local garante que a UI reaja para teste.
+
+      // Persistir no backend
+      try {
+        await updateProfileOnBackend({ role: newRole });
+        // Após sucesso no backend, atualizar a sessão NextAuth para consistência
+        // O updateSession aqui irá garantir que os callbacks jwt e session sejam chamados
+        // e o token/sessão sejam atualizados com os dados mais recentes (embora já tenhamos a newRole)
+        await updateSession({ user: { ...currentSessionUser, role: newRole } });
+         // A UI já foi atualizada pelo setCurrentSessionUser, mas a sessão global NextAuth é reforçada.
+      } catch (backendError) {
+        console.error("Falha ao persistir mudança de role no backend:", backendError);
+        // Opcional: reverter a mudança na UI se o backend falhar
+        setCurrentSessionUser((prevUser: SessionUser | undefined) => 
+          prevUser ? { ...prevUser, role: role } : undefined // Reverte para a role original
+        );
+        alert("Erro ao salvar a nova role. Tente novamente.");
+      }
+
     } catch (error) {
       console.error("Erro ao tentar atualizar o papel:", error);
     }
@@ -85,17 +139,31 @@ export default function ProfilePage() {
   const handleImageUpdate = async () => {
     if (!newImageUrl) return;
     try {
-      // Tentativa de atualizar a sessão global
-      await updateSession({ user: { ...currentSessionUser, image: newImageUrl } });
+      // Tentativa de atualizar a sessão global (NextAuth)
+      // await updateSession({ user: { ...currentSessionUser, image: newImageUrl } });
 
       // Para fins de teste imediato da UI, atualize o estado local também.
-      setCurrentSessionUser((prevUser: SessionUser | undefined) => 
-        prevUser ? { ...prevUser, image: newImageUrl } : undefined
-      );
+      // setCurrentSessionUser((prevUser: SessionUser | undefined) => 
+      //  prevUser ? { ...prevUser, image: newImageUrl } : undefined
+      // ); 
+      // console.log("Tentativa de atualizar imagem do perfil para:", newImageUrl);
+
+      // Persistir no backend
+      const backendUser = await updateProfileOnBackend({ profileImageUrl: newImageUrl });
       
-      console.log("Tentativa de atualizar imagem do perfil para:", newImageUrl);
+      // Após sucesso no backend, atualizar a sessão NextAuth para consistência
+      // e para que a UI (que depende de session.user.image) seja atualizada.
+      await updateSession({ user: { ...currentSessionUser, image: backendUser.profileImageUrl || newImageUrl } });
+      setCurrentSessionUser((prevUser: SessionUser | undefined) => 
+        prevUser ? { ...prevUser, image: backendUser.profileImageUrl || newImageUrl } : undefined
+      );
+      console.log("Imagem do perfil atualizada no backend e sessão NextAuth:", backendUser.profileImageUrl || newImageUrl);
+
     } catch (error) {
       console.error("Erro ao tentar atualizar a imagem do perfil:", error);
+      alert("Erro ao salvar a nova imagem. Tente novamente.");
+      // Opcional: reverter a imagem na UI se o backend falhar
+      // setNewImageUrl(profileImageUrl || ''); // Reverte para a imagem original
     }
   };
 

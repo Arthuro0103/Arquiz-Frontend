@@ -16,19 +16,20 @@ import { signIn } from "next-auth/react"
 import { FormEvent, useState } from "react"
 import { useRouter } from 'next/navigation'
 
+console.log("[LoginPage] Módulo carregado no cliente.");
+
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const router = useRouter();
+  console.log("[LoginPage] Componente renderizado/instanciado.");
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setError(""); // Limpa erros anteriores
-    console.log("[LoginPage handleSubmit] Tentativa de login iniciada.");
-    console.log("[LoginPage handleSubmit] Email:", email, "Senha fornecida:", !!password);
+    setError(""); 
+    console.log("[LoginPage handleSubmit] Tentativa de login iniciada com credenciais:", { email });
 
-    // Validação básica no cliente
     if (!email || !password) {
       setError("Por favor, preencha email e senha.");
       console.warn("[LoginPage handleSubmit] Email ou senha não preenchidos no cliente.");
@@ -36,37 +37,58 @@ export default function LoginPage() {
     }
 
     try {
-      console.log("[LoginPage handleSubmit] Chamando signIn('credentials')...");
+      console.log("[LoginPage handleSubmit] PREPARANDO para chamar signIn('credentials')...");
       const result = await signIn("credentials", {
-        redirect: false, 
+        redirect: false,
         email,
         password,
       });
-
-      console.log("[LoginPage handleSubmit] Resultado do signIn:", result);
+      console.log("[LoginPage handleSubmit] Resultado DIRETO do signIn:", result);
 
       if (result?.error) {
-        console.error("[LoginPage handleSubmit] Erro no login do NextAuth:", result.error);
+        console.error("[LoginPage handleSubmit] Erro retornado pelo signIn (pode ser após tentativa de redirecionamento falha):");
+        console.error("[LoginPage handleSubmit] Detalhes do Erro:", result.error);
+        console.error("[LoginPage handleSubmit] URL do Erro (se houver):", result.url);
+        console.error("[LoginPage handleSubmit] Status do Erro (se houver):", result.status);
+        console.error("[LoginPage handleSubmit] OK? (se houver):", result.ok);
+
+        let displayError = "Ocorreu um erro durante o login.";
         if (result.error === "CredentialsSignin") {
-          setError("Email ou senha inválidos. Verifique seus dados e tente novamente.");
+          displayError = "Email ou senha inválidos. Verifique seus dados e tente novamente.";
+        } else if (result.error.includes("NEXTAUTH_URL")) {
+          displayError = "Erro de configuração do servidor de autenticação. Contate o suporte.";
         } else {
-          setError(`Erro de login: ${result.error}. Tente novamente.`);
+          try {
+            const errorDetails = JSON.parse(result.error);
+            if (errorDetails.message) displayError = errorDetails.message;
+          } catch (e) {
+            displayError = `Erro: ${result.error.substring(0, 100)}`;
+          }
         }
+        setError(displayError);
         return;
       }
 
-      if (result?.ok && result.url) { // result.url não é null em caso de sucesso com redirect:false
-        console.log("[LoginPage handleSubmit] Login bem-sucedido. Redirecionando para / (ou result.url se aplicável).");
-        router.push("/"); 
-      } else {
-        // Este caso não deveria acontecer se result.error foi tratado e result.ok é true
-        // Mas é um fallback.
-        console.warn("[LoginPage handleSubmit] signIn retornou ok:true mas sem URL, ou ok:false sem erro explícito. Resultado:", result);
-        setError("Ocorreu um problema durante o login. Tente novamente.");
+      if (result?.ok && result.url) {
+        console.log("[LoginPage handleSubmit] Login bem-sucedido, redirecionando para /dashboard manualmente.");
+        router.push("/dashboard");
+        return;
+      } else if (result?.ok) {
+        console.log("[LoginPage handleSubmit] signIn retornou OK, mas não houve erro nem URL (verificar lógica).");
+        console.log("[LoginPage handleSubmit] Login OK, mas sem URL explícita. Redirecionando para /dashboard como fallback.");
+        router.push("/dashboard");
+        return;
+      } else if (!result?.error) {
+        console.warn("[LoginPage handleSubmit] signIn não retornou erro, mas o resultado não indica sucesso claro. Resultado:", result);
+        setError("Ocorreu um problema inesperado durante o login. Tente novamente.");
       }
-    } catch (err) {
-      console.error("[LoginPage handleSubmit] Exceção inesperada durante o handleSubmit:", err);
-      setError("Ocorreu um erro inesperado. Por favor, tente novamente mais tarde.");
+    } catch (err: any) {
+      console.error("[LoginPage handleSubmit] EXCEÇÃO INESPERADA durante o handleSubmit:", err);
+      let exceptionMessage = "Ocorreu um erro inesperado.";
+      if (err.message) {
+        exceptionMessage = err.message.substring(0,150);
+      }
+      setError(`Exceção: ${exceptionMessage}. Por favor, tente novamente mais tarde.`);
     }
   }
 

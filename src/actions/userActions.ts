@@ -41,7 +41,7 @@ export async function deleteCurrentUserAccount(password: string): Promise<UserAc
       let errorData;
       try {
         errorData = await response.json();
-      } catch (_e) {
+      } catch {
         errorData = { message: await response.text() || 'Falha ao deletar conta. Resposta não JSON.' };
       }
       console.error("[Server Action] deleteCurrentUserAccount: Erro da API", response.status, errorData);
