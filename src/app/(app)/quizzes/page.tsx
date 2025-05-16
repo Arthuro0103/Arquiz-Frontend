@@ -4,6 +4,8 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import type { Session } from 'next-auth';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Input } from '@/components/ui/input';
 
 export default async function QuizzesPage() {
   const session = await getServerSession(authOptions) as Session | null;
@@ -26,9 +28,11 @@ export default async function QuizzesPage() {
 
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Gerenciar Quizzes</h1>
-        <Button disabled>Criar Novo Quiz (em breve)</Button>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold">Meus Quizzes</h1>
+        <Link href="/quizzes/novo" passHref>
+          <Button>Criar Novo Quiz</Button>
+        </Link>
       </div>
 
       <Card>
