@@ -32,6 +32,7 @@ export default function NewQuizPage() {
   
   const [uiState, setUiState] = useState<'configuringAI' | 'reviewingQuiz' | 'error'>('configuringAI');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Estado da Fase 1: Configuração da IA
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
@@ -86,12 +87,13 @@ export default function NewQuizPage() {
 
   const handleGenerateQuizWithAI = async () => {
     if (!selectedTranscriptionId) {
-      alert('Por favor, selecione uma transcrição.');
+      setErrorMessage('Por favor, selecione uma transcrição.');
       return;
     }
     console.log('[NewQuizPage] Iniciando geração de quiz com IA...', { transcriptionId: selectedTranscriptionId, title: quizTitle, numQuestions, difficulty });
     setIsGenerating(true);
     setErrorMessage(null);
+    setSuccessMessage(null);
     try {
       const generatedQuiz = await createQuizFromTranscription(
         selectedTranscriptionId, 
@@ -104,8 +106,11 @@ export default function NewQuizPage() {
         shuffleQuestions,
         showCorrectAnswers // Este será mapeado para showFeedback na action
       );
+
+      console.log('[NewQuizPage] createQuizFromTranscription retornou:', JSON.stringify(generatedQuiz, null, 2));
+
       if (generatedQuiz && generatedQuiz.id) {
-        console.log('[NewQuizPage] Quiz gerado com IA:', generatedQuiz);
+        console.log('[NewQuizPage] Quiz gerado com IA (antes de setQuizData):', JSON.stringify(generatedQuiz, null, 2));
         setQuizData(generatedQuiz);
         setQuizSettings({
           timeLimitMinutes: generatedQuiz.timeLimitMinutes,
@@ -114,9 +119,11 @@ export default function NewQuizPage() {
           showCorrectAnswers: generatedQuiz.showCorrectAnswers,
         });
         setUiState('reviewingQuiz');
-        // alert('Quiz gerado com IA! Revise e salve abaixo.'); // Removido alert, UI deve refletir
+        setSuccessMessage('Quiz gerado pela IA com sucesso! Revise e salve abaixo.');
       } else {
-        throw new Error('A IA não retornou um quiz válido.');
+        setErrorMessage('A IA não retornou um quiz válido.');
+        setUiState('error');
+        setQuizData(null); 
       }
     } catch (error) {
       console.error('[NewQuizPage] Falha ao gerar quiz com IA:', error);
@@ -130,7 +137,7 @@ export default function NewQuizPage() {
 
   const handleQuizDataChange = (updatedQuiz: Quiz) => {
     if (quizData) { 
-      console.log('[NewQuizPage] Dados do QuizPreview atualizados.');
+      console.log('[NewQuizPage] Dados do QuizPreview atualizados (handleQuizDataChange). Novo quizData:', JSON.stringify(updatedQuiz, null, 2));
       setQuizData(updatedQuiz);
     }
   };
@@ -148,6 +155,7 @@ export default function NewQuizPage() {
     console.log('[NewQuizPage] Iniciando salvamento/atualização do quiz completo...', { quizId: quizData.id });
     setIsSaving(true);
     setErrorMessage(null);
+    setSuccessMessage(null);
     
     const finalQuizDataToUpdate: Partial<Quiz> = {
       ...quizData,
@@ -157,12 +165,14 @@ export default function NewQuizPage() {
     try {
       const savedQuiz = await updateQuiz(quizData.id, finalQuizDataToUpdate);
       console.log('[NewQuizPage] Quiz atualizado/salvo com sucesso:', savedQuiz);
-      alert(`Quiz "${savedQuiz.title}" salvo com sucesso!`);
-      router.push(`/quizzes`); 
+      setSuccessMessage(`Quiz "${savedQuiz.title}" salvo com sucesso! Redirecionando...`);
+      setTimeout(() => {
+        router.push(`/professor/quizzes`);
+      }, 2000);
     } catch (error) {
       console.error('[NewQuizPage] Falha ao salvar/atualizar o quiz:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Falha ao salvar o quiz.');
-      setUiState('error'); // Pode voltar para reviewingQuiz ou ficar em error
+      setUiState('error');
     } finally {
       setIsSaving(false);
     }
@@ -171,15 +181,22 @@ export default function NewQuizPage() {
   const handleTryAgain = () => {
     setUiState('configuringAI');
     setErrorMessage(null);
+    setSuccessMessage(null);
     // Resetar outros estados se necessário, ex: selectedTranscriptionId, quizTitle etc.
   };
 
   if (uiState === 'error') {
     return (
       <div className="container mx-auto py-8 text-center">
-        <h2 className="text-xl text-red-500">Ocorreu um Erro</h2>
-        <p className="mb-4">{errorMessage || 'Algo deu errado. Por favor, tente novamente.'}</p>
-        <Button onClick={handleTryAgain}>Tentar Novamente</Button>
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="text-red-600">Ocorreu um Erro</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">{errorMessage || 'Algo deu errado. Por favor, tente novamente.'}</p>
+            <Button onClick={handleTryAgain} variant="outline">Tentar Novamente</Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -195,15 +212,21 @@ export default function NewQuizPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {isLoadingTranscriptions && <p className="text-blue-600">Buscando suas transcrições na nuvem...</p>}
+            {isLoadingTranscriptions && <p className="text-blue-600">Buscando suas transcrições...</p>}
             
-            {/* Exibir erro de carregamento de transcrição aqui, se houver e ainda estiver configurando IA */}
-            {!isLoadingTranscriptions && errorMessage && transcriptions.length === 0 && (
+            {/* Mensagens de erro/sucesso globais para esta fase (opcional, ou pode ser perto do botão) */}
+            {successMessage && <p className="text-center text-green-600 mb-3">{successMessage}</p>}
+            {errorMessage && !isLoadingTranscriptions && transcriptions.length === 0 && (
+              // Erro específico de carregamento de transcrições
               <div className="p-3 mb-3 text-sm text-red-700 bg-red-100 rounded-md border border-red-300">
                 <strong>Erro ao carregar transcrições:</strong> {errorMessage}
-                <p className="text-xs mt-1">Por favor, verifique sua conexão, se o token JWT está sendo enviado corretamente e se há transcrições associadas à sua conta. Veja o console para mais detalhes.</p>
+                <p className="text-xs mt-1">Por favor, verifique sua conexão ou se há transcrições associadas. Veja o console para detalhes.</p>
               </div>
             )}
+            {/* Mensagem de erro genérica para a fase de configuração, se não for de transcrição */}
+            {errorMessage && (isLoadingTranscriptions || transcriptions.length > 0) && 
+              <p className="text-center text-red-500 mb-3">{errorMessage}</p>
+            }
 
             {!isLoadingTranscriptions && (
               <>
@@ -342,8 +365,12 @@ export default function NewQuizPage() {
                   </div>
                 </div>
                 
-                <Button onClick={handleGenerateQuizWithAI} disabled={isGenerating || !selectedTranscriptionId || isLoadingTranscriptions} className="w-full md:w-auto">
-                  {isGenerating ? 'Gerando Perguntas com IA...' : 'Gerar Perguntas com IA'}
+                <Button 
+                  onClick={handleGenerateQuizWithAI} 
+                  disabled={isGenerating || isLoadingTranscriptions || transcriptions.length === 0 || !selectedTranscriptionId} 
+                  className="w-full md:w-auto"
+                >
+                  {isGenerating ? 'Gerando Quiz com IA...' : 'Gerar Quiz com IA'}
                 </Button>
               </>
             )}
@@ -388,9 +415,13 @@ export default function NewQuizPage() {
             />
           </div>
 
+          {/* Mensagens de erro/sucesso para a fase de revisão/salvamento */}      
+          {successMessage && <p className="text-center text-green-600 mb-3">{successMessage}</p>}
+          {errorMessage && <p className="text-center text-red-500 mb-3">{errorMessage}</p>}
+          
           <div className="mt-8 flex justify-end">
             <Button onClick={handleSaveFullQuiz} disabled={isSaving}>
-              {isSaving ? 'Salvando...' : 'Salvar Quiz Completo'}
+              {isSaving ? 'Salvando Quiz...' : 'Salvar Quiz Completo'}
             </Button>
           </div>
         </CardContent>

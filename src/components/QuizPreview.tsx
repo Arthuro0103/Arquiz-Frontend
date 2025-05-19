@@ -57,6 +57,14 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
   const [editingCorrectOptionId, setEditingCorrectOptionId] = React.useState<string>('');
   const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>({});
 
+  console.log('[QuizPreview] Component rendered/updated. Initial quiz prop:', JSON.stringify(quiz, null, 2));
+  console.log('[QuizPreview] Current editableQuiz state:', JSON.stringify(editableQuiz, null, 2));
+
+  React.useEffect(() => {
+    console.log('[QuizPreview] useEffect triggered by quiz prop change. New quiz prop:', JSON.stringify(quiz, null, 2));
+    setEditableQuiz(JSON.parse(JSON.stringify(quiz)));
+  }, [quiz]);
+
   // Função para lidar com a atualização do quiz e chamar o callback
   const handleQuizUpdate = (updatedQuizData: Quiz) => {
     setEditableQuiz(updatedQuizData);
@@ -179,15 +187,22 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
       id: newQuestionId,
       text: 'Nova Pergunta',
       options: [
-        { id: `new-opt-1-${Date.now()}`, text: 'Opção A' },
-        { id: `new-opt-2-${Date.now()}`, text: 'Opção B' },
+        { id: `new-opt-1-${Date.now()}`, text: 'Opção A', isCorrect: false },
+        { id: `new-opt-2-${Date.now()}`, text: 'Opção B', isCorrect: false },
       ],
-      correctOptionId: '', // Nenhuma opção correta por padrão
+      correctOptionId: '', 
     };
-    handleQuizUpdate({
+    console.log('[QuizPreview] handleAddQuestion. New question object:', JSON.stringify(newQuestion, null, 2));
+    console.log('[QuizPreview] handleAddQuestion. editableQuiz BEFORE update:', JSON.stringify(editableQuiz, null, 2));
+    
+    const updatedQuiz = {
       ...editableQuiz,
-      questions: [...editableQuiz.questions, newQuestion],
-    });
+      questions: [...(editableQuiz?.questions || []), newQuestion],
+    };
+
+    console.log('[QuizPreview] handleAddQuestion. editableQuiz AFTER update (before calling handleQuizUpdate):', JSON.stringify(updatedQuiz, null, 2));
+    handleQuizUpdate(updatedQuiz);
+    
     // Opcionalmente, entrar no modo de edição para a nova pergunta
     handleEditQuestion(newQuestion); 
   };
