@@ -1,0 +1,167 @@
+graph TD
+    subgraph "Frontend"
+        WebApp[WebApp - React]
+        MobileWeb[Mobile Web App]
+    end
+
+    subgraph "Gateway"
+        APIGateway[API Gateway / Istio]
+        RateLimit[Rate Limiter]
+        Auth[Auth Middleware]
+    end
+
+    subgraph "Backend"
+        AuthModule[Auth Module]
+        UsersModule[Users Module]
+        TranscriptionsModule[Transcriptions Module]
+        QuizzesModule[Quizzes Module]
+        QuestionsModule[Questions Module]
+        RoomsModule[Rooms Module]
+        ParticipationModule[Participation Module]
+        ReportsModule[Reports Module]
+        AdminModule[Admin Module]
+    end
+
+    subgraph "WebSockets"
+        WSGateway[WebSocket Gateway]
+        RoomsWS[Rooms Socket Handler]
+        ParticipationWS[Participation Socket Handler]
+    end
+
+    subgraph "Armazenamento"
+        PostgreSQL[PostgreSQL]
+        Redis[Redis]
+    end
+
+    subgraph "Processamento Assíncrono"
+        RabbitMQ[RabbitMQ]
+        QuestionsWorker[Questions Generator Worker]
+        ReportsWorker[Reports Generator Worker]
+        NotificationWorker[Notification Worker]
+    end
+
+    subgraph "Serviços Externos"
+        OpenAI[OpenAI API]
+        EmailService[Email Service]
+        StorageService[Storage Service]
+    end
+
+    subgraph "Observabilidade"
+        Prometheus[Prometheus]
+        Grafana[Grafana]
+        ElasticSearch[ElasticSearch]
+        Kibana[Kibana]
+        Jaeger[Jaeger]
+    end
+
+    %% Frontend -> Gateway
+    WebApp --> APIGateway
+    MobileWeb --> APIGateway
+    WebApp --> WSGateway
+    MobileWeb --> WSGateway
+
+    %% Gateway -> Backend
+    APIGateway --> RateLimit
+    RateLimit --> Auth
+    Auth --> AuthModule
+    Auth --> UsersModule
+    Auth --> TranscriptionsModule
+    Auth --> QuizzesModule
+    Auth --> QuestionsModule
+    Auth --> RoomsModule
+    Auth --> ParticipationModule
+    Auth --> ReportsModule
+    Auth --> AdminModule
+
+    %% WebSockets
+    WSGateway --> RoomsWS
+    WSGateway --> ParticipationWS
+    RoomsWS --> RoomsModule
+    ParticipationWS --> ParticipationModule
+
+    %% Backend -> Armazenamento
+    AuthModule --> PostgreSQL
+    UsersModule --> PostgreSQL
+    TranscriptionsModule --> PostgreSQL
+    QuizzesModule --> PostgreSQL
+    QuestionsModule --> PostgreSQL
+    RoomsModule --> PostgreSQL
+    ParticipationModule --> PostgreSQL
+    ReportsModule --> PostgreSQL
+    AdminModule --> PostgreSQL
+
+    AuthModule --> Redis
+    RoomsModule --> Redis
+    ParticipationModule --> Redis
+    ReportsModule --> Redis
+
+    %% Backend -> Message Broker
+    TranscriptionsModule --> RabbitMQ
+    QuizzesModule --> RabbitMQ
+    QuestionsModule --> RabbitMQ
+    ReportsModule --> RabbitMQ
+    RoomsModule --> RabbitMQ
+
+    %% Message Broker -> Workers
+    RabbitMQ --> QuestionsWorker
+    RabbitMQ --> ReportsWorker
+    RabbitMQ --> NotificationWorker
+
+    %% Workers -> External Services
+    QuestionsWorker --> OpenAI
+    NotificationWorker --> EmailService
+    ReportsWorker --> StorageService
+
+    %% Observabilidade
+    AuthModule -.-> Prometheus
+    UsersModule -.-> Prometheus
+    TranscriptionsModule -.-> Prometheus
+    QuizzesModule -.-> Prometheus
+    QuestionsModule -.-> Prometheus
+    RoomsModule -.-> Prometheus
+    ParticipationModule -.-> Prometheus
+    ReportsModule -.-> Prometheus
+    AdminModule -.-> Prometheus
+
+    Prometheus --> Grafana
+    
+    AuthModule -.-> ElasticSearch
+    UsersModule -.-> ElasticSearch
+    TranscriptionsModule -.-> ElasticSearch
+    QuizzesModule -.-> ElasticSearch
+    QuestionsModule -.-> ElasticSearch
+    RoomsModule -.-> ElasticSearch
+    ParticipationModule -.-> ElasticSearch
+    ReportsModule -.-> ElasticSearch
+    AdminModule -.-> ElasticSearch
+    
+    ElasticSearch --> Kibana
+    
+    AuthModule -.-> Jaeger
+    UsersModule -.-> Jaeger
+    TranscriptionsModule -.-> Jaeger
+    QuizzesModule -.-> Jaeger
+    QuestionsModule -.-> Jaeger
+    RoomsModule -.-> Jaeger
+    ParticipationModule -.-> Jaeger
+    ReportsModule -.-> Jaeger
+    AdminModule -.-> Jaeger
+
+    %% Style
+    classDef frontend fill:#e1f5fe,stroke:#01579b,stroke-width:1px;
+    classDef gateway fill:#f3e5f5,stroke:#6a1b9a,stroke-width:1px;
+    classDef backend fill:#e8f5e9,stroke:#1b5e20,stroke-width:1px;
+    classDef websockets fill:#fff8e1,stroke:#ff6f00,stroke-width:1px;
+    classDef storage fill:#fce4ec,stroke:#880e4f,stroke-width:1px;
+    classDef queue fill:#e8eaf6,stroke:#1a237e,stroke-width:1px;
+    classDef external fill:#f1f8e9,stroke:#33691e,stroke-width:1px;
+    classDef observability fill:#fffde7,stroke:#f57f17,stroke-width:1px;
+
+    class WebApp,MobileWeb frontend;
+    class APIGateway,RateLimit,Auth gateway;
+    class AuthModule,UsersModule,TranscriptionsModule,QuizzesModule,QuestionsModule,RoomsModule,ParticipationModule,ReportsModule,AdminModule backend;
+    class WSGateway,RoomsWS,ParticipationWS websockets;
+    class PostgreSQL,Redis storage;
+    class RabbitMQ,QuestionsWorker,ReportsWorker,NotificationWorker queue;
+    class OpenAI,EmailService,StorageService external;
+    class Prometheus,Grafana,ElasticSearch,Kibana,Jaeger observability;

@@ -1,0 +1,258 @@
+# ArQuiz - Product Requirements Document
+
+<context>
+# Overview  
+ArQuiz is an educational micro SaaS that enables the creation of interactive assessments in a competition format. The system uses AI to generate multiple-choice questions from transcripts of classes, lectures, or training sessions.
+
+The main goal is to verify if students/audience were paying attention during classes or lectures, promoting engagement through gamification elements, facilitating instant learning assessment, and offering insights into student performance.
+
+# Core Features  
+- **Content Capture**:
+  - Direct input of transcriptions via text
+  - Integration with transcription services (future implementation)
+
+- **Question Generation**:
+  - AI to create multiple-choice questions
+  - Configuration of difficulty levels
+  - Manual editing of generated questions
+
+- **Competition Rooms**:
+  - Creation with invitation codes/links
+  - Real-time monitoring
+  - Ranking and scoring system
+
+- **Performance Reports**:
+  - Detailed statistics by student/class
+  - Analysis of most correct/incorrect questions
+  - Data export
+
+# User Experience  
+## User Profiles
+- **Teachers/Presenters**: Create quizzes, manage rooms, analyze results
+- **Students/Participants**: Participate in competitions, view rankings, receive feedback
+
+## Main Flows
+### Teacher
+1. Register and login to the platform
+2. Upload class transcription
+3. Automatic question generation
+4. Review and edit the quiz
+5. Create competition room
+6. Share code/link
+7. Start competition and monitor in real-time
+8. Results analysis
+
+### Student
+1. Access via invitation code/link
+2. Simplified registration
+3. Wait in virtual room
+4. Participate in the competition
+5. View results and ranking
+</context>
+<PRD>
+# Technical Architecture  
+## Technology Stack
+- **Frontend**: React.js with Material-UI or Tailwind CSS
+- **Backend**: NestJS with TypeScript
+  - Modular architecture based on decorators
+  - Native dependency injection
+  - Microservice support
+  - Scalable and easily testable structure
+  - Pipe system for validation and data transformation
+  - Interceptors for cross-cutting concerns (logs, cache, etc.)
+  - Guards for endpoint protection
+  - Isolated modules with clear separation of responsibilities
+- **Database**: PostgreSQL for structured data
+- **Cache**: Redis for sessions and real-time data
+- **Messaging**: RabbitMQ for asynchronous processing
+- **AI**: Integration with OpenAI GPT for question generation
+- **Real-Time Communication**: WebSockets for real-time updates
+- **Observability**: Pino for logs, OpenTelemetry for metrics and tracing
+
+## Data Model
+### Main Entities
+- **User**: ID, Type (Teacher/Student), Name, Email, Password (hash), etc.
+- **Transcription**: ID, Teacher ID, Title, Content, Creation Date, etc.
+- **Quiz**: ID, Transcription ID, Title, Settings, Status, etc.
+- **Question**: ID, Quiz ID, Text, Alternatives (array), Correct Answer, etc.
+- **Competition Room**: ID, Quiz ID, Access Code, Invitation Link, Status, etc.
+- **Participation**: ID, Student ID, Room ID, Score, Answers (array), etc.
+- **Result**: Room ID, Student ID, Ranking Position, Final Score, etc.
+
+## NestJS Structure
+The backend architecture will be built using NestJS, organized in the following modules:
+
+- **AuthModule**: Authentication and authorization
+- **UsersModule**: User management
+- **TranscriptionsModule**: Transcription processing
+- **QuestionsModule**: Question generation and management
+- **QuizzesModule**: Quiz management
+- **RoomsModule**: Competition room management
+- **ParticipationModule**: Participation and answer recording
+- **ReportsModule**: Report generation and analytics
+- **CommonModule**: Shared utilities and services
+- **ConfigModule**: Application settings
+- **InfrastructureModule**: Infrastructure services (cache, queues, etc.)
+
+## APIs and Integrations
+- **REST API**: Endpoints for all CRUD operations
+- **WebSockets**: Real-time communication for competitions
+- **AI Integration**: OpenAI API for question generation
+- **Data Export**: CSV, PDF formats for reports
+
+## Infrastructure
+- **Containerization**: Docker for development and production
+- **Hosting**: AWS, Google Cloud, or Microsoft Azure
+- **Scalability**: Microservice-based architecture
+- **Observability**: ELK Stack, Prometheus, Grafana, Jaeger
+
+# Development Roadmap  
+## Phase 1: MVP (Minimum Viable Product)
+- Basic authentication system (teacher/student)
+- Transcription input functionality
+- Simple question generation via AI
+- Basic room creation and sharing
+- Minimalist interface for teachers and students
+- Basic performance reports
+
+## Phase 2: Feature Enhancement
+- Improvement of question generation algorithm
+- Addition of configurable difficulty levels
+- Complete scoring and ranking system
+- Competitive experience improvements (timer, etc.)
+- Advanced reports and statistics
+
+## Phase 3: Scale and Advanced Features
+- Support for multiple languages
+- Performance optimizations for scale
+- Advanced customization systems
+- In-depth data analysis tools
+- Advanced gamification features
+
+## Phase 4: Monetization and Growth
+- Monetization models (Freemium, monthly subscription, etc.)
+- User expansion and marketing
+- Integrations with other educational systems
+
+# Implementation Sequence  
+## Technical Dependencies
+1. Docker development environment setup (PostgreSQL, Redis, RabbitMQ)
+2. NestJS base structure implementation
+3. JWT authentication configuration
+4. User entity implementation
+5. OpenAI integration for question generation
+6. WebSockets implementation for real-time communication
+
+## Prioritization
+### Maximum Priority (Essential for MVP)
+- Basic authentication (registration/login)
+- Text transcription upload
+- AI question generation
+- Simple quiz creation
+- Room system with invitation code
+- Answer submission and basic score calculation
+- Ranking visualization at the end of competition
+
+### High Priority
+- WebSockets for real-time updates
+- Invitation link system
+- Basic performance reports
+- Manual editing of generated questions
+
+### Medium Priority
+- Configurable difficulty levels
+- Question timer
+- Real-time ranking during competition
+- Detailed reports by student/question
+- WebSocket exception handling
+
+# Testing Strategy
+## Testing Approach
+A comprehensive testing strategy should be implemented using bash scripts (.sh) organized in a `tests/` folder. This approach aims to ensure the quality and robustness of the application through:
+
+1. **Use Case Testing**: Create specific scripts for each use case identified in the `docs/casosDeUso/` folder, ensuring complete coverage of business flows.
+
+2. **Directory Structure**: Organize tests in directories that mirror the application structure:
+   - `tests/auth/` - Authentication tests
+   - `tests/transcriptions/` - Transcription tests
+   - `tests/questions/` - Question generation tests
+   - `tests/quizzes/` - Quiz tests
+   - `tests/rooms/` - Room tests
+   - `tests/participation/` - Participation tests
+   - `tests/reports/` - Report tests
+   - `tests/websocket/` - WebSocket tests
+   - `tests/integration/` - Integration tests
+   - `tests/utils/` - Test utilities
+
+3. **Test Types**: Implement different categories of tests:
+   - Unit tests to validate isolated endpoints
+   - Integration tests to validate complete flows
+   - Load tests to simulate multiple users
+   - Specific tests for WebSockets and real-time communication
+
+4. **Shared Utilities**: Develop shared functions for common operations (login, resource creation, validations, etc.) that can be reused across various scripts.
+
+5. **Main Script**: Create a central script that runs all tests sequentially or by groups, facilitating integration with CI/CD pipelines.
+
+## Approach Benefits
+- Executable API documentation
+- Continuous validation of functionalities
+- Easy integration with CI/CD environments
+- Framework-independent tests
+- Ability to run locally or in test environments
+
+## Test Coverage
+The scripts should cover all documented use cases, including:
+
+- Teacher and student authentication
+- Transcription management
+- Question generation and editing
+- Room creation and control
+- Competition participation
+- Real-time communication via WebSockets
+- Report generation and exports
+- System administration flows
+
+This testing strategy should be implemented in parallel with development, ensuring that each functionality is adequately tested before being considered complete.
+
+# Risks and Mitigations  
+## Technical Challenges
+- **Generated Question Quality**: Implement feedback system and initial manual review
+- **WebSocket Scalability**: Distributed architecture and connection optimization
+- **Real-Time Latency**: Efficient cache system and WebSocket communication optimization
+- **Authentication Security**: JWT with token renewal and protection against common attacks
+
+## MVP Strategies
+- Focus on essential features first
+- Implement simplified version of question generation
+- Use caching to reduce OpenAI API calls
+- Start with basic but functional interface
+
+## Resource Management
+- **AI Costs**: Intelligent cache system, limits by plan
+- **Performance**: Query optimization, proper database indexes
+- **Resilience**: Retry, circuit breaker, and fallback strategies
+
+# Observability and Monitoring  
+## Logging System
+- Structured logs in JSON format with Pino
+- Levels: error, warn, info, debug, trace
+- Automatic redaction of sensitive information
+- Correlation between logs through requestId
+
+## Metrics
+- Counters: HTTP requests, generated questions, errors by type
+- Gauges: Active users, active quizzes, active rooms
+- Histograms: API response time, question generation time
+
+## Tracing
+- Distributed request tracing
+- End-to-end visibility of operations
+- `@Trace()` decorator for important methods
+
+## Dashboards
+- API overview (request rate, response times)
+- Question Generation (quantity, average time)
+- WebSockets (active connections, messages per second)
+- System Resources (CPU, memory, disk)
+</PRD> 
