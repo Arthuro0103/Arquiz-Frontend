@@ -61,8 +61,8 @@ export default function LoginPage() {
           try {
             const errorDetails = JSON.parse(result.error);
             if (errorDetails.message) displayError = errorDetails.message;
-          } catch (e) {
-            displayError = `Erro: ${result.error.substring(0, 100)}`;
+          } catch {
+            // Silently handle token deletion errors
           }
         }
         setError(displayError);
@@ -82,10 +82,10 @@ export default function LoginPage() {
         console.warn("[LoginPage handleSubmit] signIn não retornou erro, mas o resultado não indica sucesso claro. Resultado:", result);
         setError("Ocorreu um problema inesperado durante o login. Tente novamente.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[LoginPage handleSubmit] EXCEÇÃO INESPERADA durante o handleSubmit:", err);
       let exceptionMessage = "Ocorreu um erro inesperado.";
-      if (err.message) {
+      if (err instanceof Error && err.message) {
         exceptionMessage = err.message.substring(0,150);
       }
       setError(`Exceção: ${exceptionMessage}. Por favor, tente novamente mais tarde.`);

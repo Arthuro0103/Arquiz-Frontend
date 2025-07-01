@@ -1,14 +1,15 @@
 'use client'; // Pode precisar ser cliente para interatividade futura
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardDescription, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit3, PlusCircle } from 'lucide-react';
+import { Trash2, Edit3, PlusCircle, Sparkles } from 'lucide-react';
 import { Quiz, QuizQuestion, QuizOption } from '@/types/quiz.types';
+import { QuestionDifficulty } from '@/types/quiz.types';
 
 // Tipos simulados
 /*
@@ -55,10 +56,14 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
   const [editingQuestionText, setEditingQuestionText] = React.useState<string>('');
   const [editingOptions, setEditingOptions] = React.useState<QuizOption[]>([]);
   const [editingCorrectOptionId, setEditingCorrectOptionId] = React.useState<string>('');
+  const [editingPoints, setEditingPoints] = React.useState<number>(1);
   const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>({});
+  const [isRescoring, setIsRescoring] = React.useState<boolean>(false);
 
   console.log('[QuizPreview] Component rendered/updated. Initial quiz prop:', JSON.stringify(quiz, null, 2));
   console.log('[QuizPreview] Current editableQuiz state:', JSON.stringify(editableQuiz, null, 2));
+  console.log('[QuizPreview] Quiz scoringType:', quiz.scoringType);
+  console.log('[QuizPreview] Should show custom scoring?', quiz.scoringType === 'custom');
 
   React.useEffect(() => {
     console.log('[QuizPreview] useEffect triggered by quiz prop change. New quiz prop:', JSON.stringify(quiz, null, 2));
@@ -78,6 +83,7 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
     setEditingQuestionText(question.text);
     setEditingOptions(JSON.parse(JSON.stringify(question.options))); // Deep copy
     setEditingCorrectOptionId(question.correctOptionId);
+    setEditingPoints(question.points || 1);
   };
 
   const handleSaveQuestion = (questionId: string) => {
@@ -110,6 +116,7 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
           text: editingQuestionText,
           options: editingOptions,
           correctOptionId: editingCorrectOptionId,
+          points: editingPoints,
         };
       }
       return q;
@@ -129,7 +136,7 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
     );
   };
   
-  const handleAddOption = (questionId: string) => {
+  const handleAddOption = () => {
     const newOptionId = `new-option-${Date.now()}`; // ID único simples
     setEditingOptions(prevOptions => [
       ...prevOptions,
@@ -209,10 +216,64 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
 
   // Função para remover uma pergunta
   const handleRemoveQuestion = (questionIdToRemove: string) => {
-    const updatedQuestions = editableQuiz.questions.filter(q => q.id !== questionIdToRemove);
+    const currentQuestions = editableQuiz.questions || [];
+    const updatedQuestions = currentQuestions.filter(q => q.id !== questionIdToRemove);
     handleQuizUpdate({ ...editableQuiz, questions: updatedQuestions });
     if (editingQuestionId === questionIdToRemove) {
       setEditingQuestionId(null); // Sair do modo de edição se a pergunta atual for removida
+    }
+  };
+
+  // Função para pontuar questões com IA
+  const handleRescoreQuestions = async () => {
+    if (!editableQuiz.questions || editableQuiz.questions.length === 0) {
+      return;
+    }
+    
+    setIsRescoring(true);
+    try {
+      // For now, we'll implement simple AI-based scoring logic
+      // In a real implementation, this would call your backend API
+      const updatedQuestions = editableQuiz.questions.map(question => {
+        let points = 1; // Default
+        
+        // Simple heuristic based on question difficulty or complexity
+        if (question.difficulty) {
+          switch (question.difficulty) {
+            case QuestionDifficulty.EASY:
+              points = 1;
+              break;
+            case QuestionDifficulty.MEDIUM:
+              points = 2;
+              break;
+            case QuestionDifficulty.HARD:
+              points = 3;
+              break;
+            default:
+              points = 1;
+          }
+        } else {
+          // If no difficulty, score based on question length and complexity
+          const questionLength = question.text.length;
+          const numOptions = question.options.length;
+          
+          if (questionLength > 200 || numOptions > 4) {
+            points = 3; // Complex question
+          } else if (questionLength > 100 || numOptions > 2) {
+            points = 2; // Medium question
+          } else {
+            points = 1; // Simple question
+          }
+        }
+        
+        return { ...question, points };
+      });
+      
+      handleQuizUpdate({ ...editableQuiz, questions: updatedQuestions });
+    } catch (error) {
+      console.error('[QuizPreview] Error rescoring questions:', error);
+    } finally {
+      setIsRescoring(false);
     }
   };
 
@@ -230,11 +291,31 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button onClick={handleAddQuestion} className="mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Button onClick={handleAddQuestion} className="flex-shrink-0">
           <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pergunta
         </Button>
-        <Accordion type="single" collapsible className="w-full" value={editingQuestionId ? `item-${editableQuiz.questions.findIndex(q => q.id === editingQuestionId)}` : undefined}>
-          {editableQuiz.questions.map((question, index) => (
+          
+          {/* Temporarily always show for debugging */}
+          <Button 
+            onClick={handleRescoreQuestions} 
+            disabled={isRescoring || !editableQuiz.questions || editableQuiz.questions.length === 0}
+            variant="outline"
+            className="flex-shrink-0"
+          >
+            {isRescoring ? (
+              <>
+                <Sparkles className="mr-2 h-4 w-4 animate-spin" /> Pontuando...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" /> Pontuar Questões (Debug)
+              </>
+            )}
+          </Button>
+        </div>
+        <Accordion type="single" collapsible className="w-full" value={editingQuestionId ? `item-${editableQuiz.questions?.findIndex(q => q.id === editingQuestionId)}` : undefined}>
+          {(editableQuiz.questions && Array.isArray(editableQuiz.questions)) ? editableQuiz.questions.map((question, index) => (
             <AccordionItem value={`item-${index}`} key={question.id}>
               <AccordionTrigger>
                 Pergunta {index + 1}: {editingQuestionId === question.id ? 'Editando...' : question.text}
@@ -255,30 +336,58 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
                     
                     <Label>Opções</Label>
                     {validationErrors.optionsCount && <p className="text-xs text-red-500 mb-2">{validationErrors.optionsCount}</p>}
+                    <RadioGroup value={editingCorrectOptionId} onValueChange={handleSetCorrectOption} className="space-y-2">
                     {editingOptions.map((option, optIndex) => (
-                      <div key={option.id} className="flex items-center space-x-2">
+                        <div key={option.id} className="flex items-center space-x-2 mb-2">
+                          <Label className="sr-only" htmlFor={`option-${optIndex}`}>
+                            Opção {optIndex + 1}
+                          </Label>
                         <RadioGroupItem 
                           value={option.id} 
                           id={`edit-${question.id}-${option.id}`} 
-                          checked={editingCorrectOptionId === option.id}
-                          onClick={() => handleSetCorrectOption(option.id)}
                           className="form-radio"
                         />
+                          <Label htmlFor={`edit-${question.id}-${option.id}`} className="flex-grow">
                         <Input 
                           value={option.text}
                           onChange={(e) => handleOptionTextChange(option.id, e.target.value)}
-                          className={`flex-grow ${validationErrors[`optionText_${option.id}`] ? 'border-red-500' : ''}`}
+                              className={`w-full ${validationErrors[`optionText_${option.id}`] ? 'border-red-500' : ''}`}
                         />
+                          </Label>
                         {validationErrors[`optionText_${option.id}`] && <p className="text-xs text-red-500 mt-1 ml-6">{validationErrors[`optionText_${option.id}`]}</p>}
                         <Button variant="ghost" size="sm" onClick={() => handleRemoveOption(option.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     ))}
-                    <Button variant="outline" size="sm" onClick={() => handleAddOption(question.id)}>
+                    </RadioGroup>
+                    <Button variant="outline" size="sm" onClick={() => handleAddOption()}>
                       <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Opção
                     </Button>
                     {validationErrors.correctOption && <p className="text-xs text-red-500 mt-2">{validationErrors.correctOption}</p>}
+
+                    {/* Configurações avançadas da pergunta */}
+                    {quiz.scoringType === 'custom' && (
+                      <div className="border-t pt-4 space-y-4">
+                        <h4 className="text-sm font-medium">Configurações da Pergunta</h4>
+                        
+                        <div>
+                          <Label htmlFor={`question-points-${question.id}`}>Pontos</Label>
+                          <Input
+                            id={`question-points-${question.id}`}
+                            type="number"
+                            value={editingPoints}
+                            onChange={(e) => setEditingPoints(parseInt(e.target.value, 10) || 1)}
+                            min="1"
+                            max="100"
+                            className="w-24"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Pontos atribuídos para esta pergunta
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex space-x-2 mt-4">
                       <Button onClick={() => handleSaveQuestion(question.id)}>Salvar Alterações</Button>
@@ -287,6 +396,38 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
                   </div>
                 ) : (
                   <>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="text-sm text-muted-foreground">
+                        {question.text}
+                      </p>
+                      <div className="flex space-x-2 items-center">
+                        {/* Temporarily always show point inputs for debugging */}
+                        <div className="flex items-center space-x-1">
+                          <Label htmlFor={`question-points-view-${question.id}`} className="text-xs text-muted-foreground">
+                            Pontos:
+                          </Label>
+                          <Input
+                            id={`question-points-view-${question.id}`}
+                            type="number"
+                            value={question.points || 1}
+                            onChange={(e) => {
+                              const newPoints = parseInt(e.target.value, 10) || 1;
+                              const updatedQuestions = editableQuiz.questions.map(q => 
+                                q.id === question.id ? { ...q, points: Math.max(1, Math.min(100, newPoints)) } : q
+                              );
+                              handleQuizUpdate({ ...editableQuiz, questions: updatedQuestions });
+                            }}
+                            min="1"
+                            max="100"
+                            className="w-16 h-8 text-center text-xs"
+                          />
+                        </div>
+                        {/* Show debug info */}
+                        <span className="text-xs text-gray-500">
+                          (Debug: scoringType={quiz.scoringType})
+                        </span>
+                      </div>
+                    </div>
                     <RadioGroup defaultValue={question.correctOptionId} className="space-y-2 mt-2 mb-4">
                       {question.options.map((option) => (
                         <div key={option.id} className="flex items-center space-x-2">
@@ -310,7 +451,11 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
                 )}
               </AccordionContent>
             </AccordionItem>
-          ))}
+          )) : (
+            <div className="text-center text-gray-500 py-8">
+              <p>Nenhuma pergunta encontrada. Clique em &ldquo;Adicionar Pergunta&rdquo; para começar.</p>
+            </div>
+          )}
         </Accordion>
       </CardContent>
     </Card>

@@ -1,7 +1,7 @@
 'use server';
 
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 // import type { Transcription } from "@/types"; // Removida - tipo local abaixo é usado
 
 // Supondo uma estrutura similar a quiz.types.ts para Transcription
@@ -14,7 +14,7 @@ export interface Transcription {
   // Outros campos relevantes da transcrição
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:7777";
 
 interface ApiResponse {
   items: Transcription[];
@@ -32,8 +32,8 @@ async function handleApiResponse(response: Response, operationName: string) {
     try {
       responseBodyText = await responseCloneForLogging.text();
       errorData = JSON.parse(responseBodyText);
-    } catch (e) {
-      errorData = { message: response.statusText, status: response.status, body: responseBodyText };
+    } catch {
+      // Silently continue if file reading fails
     }
     console.error(`[handleApiResponse] API Error during ${operationName}:`, { 
       status: response.status,

@@ -17,7 +17,7 @@ type QuizQuestion = {
 interface QuestionDisplayProps {
   question: QuizQuestion;
   selectedAnswer: string | null;
-  onAnswerSelect: (answerId: string | null) => void;
+  onAnswerSelect: (optionId: string | null) => void;
   feedback: 'correct' | 'incorrect' | null;
   disabled: boolean;
 }

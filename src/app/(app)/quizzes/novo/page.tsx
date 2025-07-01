@@ -3,29 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import QuizPreview from '@/components/QuizPreview';
-import QuizSettingsPanel from '@/components/QuizSettingsPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Quiz, QuestionDifficulty } from '@/types/quiz.types';
-import { createQuizFromTranscription, createQuiz, updateQuiz } from '@/actions/quiz.actions';
+import { createQuizFromTranscription, updateQuiz } from '@/actions/quiz.actions';
 import { getTranscriptions, type Transcription } from '@/actions/transcriptionActions';
-import { Switch } from '@/components/ui/switch';
-
-// Função para gerar IDs únicos (simples para mock)
-const generateId = () => Math.random().toString(36).substr(2, 9);
-
-const initialQuizStructure: Quiz = {
-  id: generateId(), 
-  title: 'Quiz Gerado',
-  questions: [],
-  timeLimitMinutes: undefined,
-  scoringType: 'default',
-  shuffleQuestions: false,
-  showCorrectAnswers: 'after_quiz',
-};
 
 export default function NewQuizPage() {
   const router = useRouter();
@@ -39,15 +24,10 @@ export default function NewQuizPage() {
   const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(true);
   const [selectedTranscriptionId, setSelectedTranscriptionId] = useState<string>('');
   const [quizTitle, setQuizTitle] = useState('Novo Quiz Gerado por IA');
-  const [numQuestions, setNumQuestions] = useState<number>(5);
+  const [numQuestions, setNumQuestions] = useState<string>('5');
   const [difficulty, setDifficulty] = useState<QuestionDifficulty>(QuestionDifficulty.MEDIUM);
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  // Novos estados para configurações da Fase 1
-  const [timeLimitMinutes, setTimeLimitMinutes] = useState<number | undefined>(undefined);
   const [scoringType, setScoringType] = useState<'default' | 'custom'>('default');
-  const [shuffleQuestions, setShuffleQuestions] = useState<boolean>(false);
-  const [showCorrectAnswers, setShowCorrectAnswers] = useState<'immediately' | 'after_quiz' | 'never'>('after_quiz');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Estado da Fase 2: Revisão e Dados do Quiz
   const [quizData, setQuizData] = useState<Quiz | null>(null);
@@ -56,7 +36,7 @@ export default function NewQuizPage() {
 
   useEffect(() => {
     async function fetchTranscriptions() {
-      console.log('[NewQuizPage] Iniciando fetchTranscriptions. isLoadingTranscriptions:', isLoadingTranscriptions);
+      console.log('[NewQuizPage] Iniciando fetchTranscriptions.');
       setIsLoadingTranscriptions(true);
       setErrorMessage(null); 
       try {
@@ -70,53 +50,63 @@ export default function NewQuizPage() {
         } else {
           console.warn('[NewQuizPage] Nenhuma transcrição foi retornada pela action getTranscriptions ou o array está vazio/erro.', response.message);
           setTranscriptions([]);
-          if (uiState !== 'error') {
              setErrorMessage(response.message || 'Falha ao carregar suas transcrições. Verifique a conexão ou se possui transcrições associadas à sua conta.');
-          }
         }
       } catch (error) {
         console.error('[NewQuizPage] Erro crítico capturado no useEffect ao tentar buscar transcrições:', error);
         setErrorMessage(error instanceof Error ? error.message : 'Falha crítica ao carregar suas transcrições.');
       } finally {
         setIsLoadingTranscriptions(false);
-        console.log('[NewQuizPage] fetchTranscriptions finalizado. isLoadingTranscriptions:', false);
+        console.log('[NewQuizPage] fetchTranscriptions finalizado.');
       }
     }
+
     fetchTranscriptions();
-  }, []); 
+  }, []); // Empty dependency array - only run once on mount
 
   const handleGenerateQuizWithAI = async () => {
     if (!selectedTranscriptionId) {
       setErrorMessage('Por favor, selecione uma transcrição.');
       return;
     }
-    console.log('[NewQuizPage] Iniciando geração de quiz com IA...', { transcriptionId: selectedTranscriptionId, title: quizTitle, numQuestions, difficulty });
+    console.log('[NewQuizPage] Iniciando geração de quiz com IA...', { 
+      transcriptionId: selectedTranscriptionId, 
+      title: quizTitle, 
+      numQuestions, 
+      difficulty,
+      scoringType
+    });
     setIsGenerating(true);
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
       const generatedQuiz = await createQuizFromTranscription(
         selectedTranscriptionId, 
-        numQuestions, 
+        parseInt(numQuestions, 10) || 5, // Convert string to number with fallback
         quizTitle, 
         difficulty,
-        // Passando as novas configurações para a action
-        timeLimitMinutes,
-        scoringType, // Este não tem correspondente direto no backend DTO atual (showFeedback)
-        shuffleQuestions,
-        showCorrectAnswers // Este será mapeado para showFeedback na action
+        undefined, // timeLimitMinutes
+        scoringType,
+        undefined, // shuffleQuestions
+        undefined, // showCorrectAnswers
+        undefined, // questionTimeLimit
+        scoringType === 'custom' ? 'ai' : undefined // Tell backend to use AI scoring if custom is selected
       );
 
       console.log('[NewQuizPage] createQuizFromTranscription retornou:', JSON.stringify(generatedQuiz, null, 2));
 
       if (generatedQuiz && generatedQuiz.id) {
         console.log('[NewQuizPage] Quiz gerado com IA (antes de setQuizData):', JSON.stringify(generatedQuiz, null, 2));
+        console.log('[NewQuizPage] scoringType in generated quiz:', generatedQuiz.scoringType);
+        console.log('[NewQuizPage] questions in generated quiz:', generatedQuiz.questions?.length || 0);
+        if (generatedQuiz.questions && generatedQuiz.questions.length > 0) {
+          console.log('[NewQuizPage] First question points:', generatedQuiz.questions[0].points);
+          console.log('[NewQuizPage] All question points:', generatedQuiz.questions.map(q => q.points));
+        }
         setQuizData(generatedQuiz);
         setQuizSettings({
           timeLimitMinutes: generatedQuiz.timeLimitMinutes,
           scoringType: generatedQuiz.scoringType,
-          shuffleQuestions: generatedQuiz.shuffleQuestions,
-          showCorrectAnswers: generatedQuiz.showCorrectAnswers,
         });
         setUiState('reviewingQuiz');
         setSuccessMessage('Quiz gerado pela IA com sucesso! Revise e salve abaixo.');
@@ -136,15 +126,10 @@ export default function NewQuizPage() {
   };
 
   const handleQuizDataChange = (updatedQuiz: Quiz) => {
-    if (quizData) { 
+    if (updatedQuiz) {
       console.log('[NewQuizPage] Dados do QuizPreview atualizados (handleQuizDataChange). Novo quizData:', JSON.stringify(updatedQuiz, null, 2));
       setQuizData(updatedQuiz);
     }
-  };
-
-  const handleSettingsChange = (updatedSettings: Partial<Quiz>) => {
-    console.log('[NewQuizPage] Configurações do QuizSettingsPanel atualizadas.');
-    setQuizSettings(updatedSettings);
   };
 
   const handleSaveFullQuiz = async () => {
@@ -153,21 +138,44 @@ export default function NewQuizPage() {
       return;
     }
     console.log('[NewQuizPage] Iniciando salvamento/atualização do quiz completo...', { quizId: quizData.id });
+    console.log('[NewQuizPage] Current quizData:', JSON.stringify(quizData, null, 2));
+    console.log('[NewQuizPage] Current quizSettings:', JSON.stringify(quizSettings, null, 2));
+    
     setIsSaving(true);
     setErrorMessage(null);
     setSuccessMessage(null);
     
+    // Properly structure the data for the backend
     const finalQuizDataToUpdate: Partial<Quiz> = {
-      ...quizData,
-      ...quizSettings,
+      title: quizData.title,
+      description: quizData.description,
+      difficulty: quizData.difficulty,
+      transcriptionId: quizData.transcriptionId,
+      // Map frontend timeLimitMinutes to backend timeLimit (in seconds)
+      timeLimitMinutes: quizSettings.timeLimitMinutes,
+      // Include other settings
+      scoringType: quizSettings.scoringType || quizData.scoringType,
+      // Include the questions with proper structure
+      questions: quizData.questions?.map((q, index) => ({
+        id: q.id,
+        text: q.text,
+        options: q.options,
+        correctOptionId: q.correctOptionId,
+        order: q.order !== undefined ? q.order : index,
+        points: q.points !== undefined ? q.points : 1,
+        explanation: q.explanation,
+        difficulty: q.difficulty,
+      })) || [],
     };
+
+    console.log('[NewQuizPage] Final data to update:', JSON.stringify(finalQuizDataToUpdate, null, 2));
 
     try {
       const savedQuiz = await updateQuiz(quizData.id, finalQuizDataToUpdate);
       console.log('[NewQuizPage] Quiz atualizado/salvo com sucesso:', savedQuiz);
       setSuccessMessage(`Quiz "${savedQuiz.title}" salvo com sucesso! Redirecionando...`);
       setTimeout(() => {
-        router.push(`/professor/quizzes`);
+        router.push(`/quizzes`);
       }, 2000);
     } catch (error) {
       console.error('[NewQuizPage] Falha ao salvar/atualizar o quiz:', error);
@@ -214,7 +222,7 @@ export default function NewQuizPage() {
           <CardContent className="space-y-4">
             {isLoadingTranscriptions && <p className="text-blue-600">Buscando suas transcrições...</p>}
             
-            {/* Mensagens de erro/sucesso globais para esta fase (opcional, ou pode ser perto do botão) */}
+            {/* Mensagens de erro/sucesso globais para esta fase */}
             {successMessage && <p className="text-center text-green-600 mb-3">{successMessage}</p>}
             {errorMessage && !isLoadingTranscriptions && transcriptions.length === 0 && (
               // Erro específico de carregamento de transcrições
@@ -280,7 +288,24 @@ export default function NewQuizPage() {
                     id="numQuestions" 
                     type="number" 
                     value={numQuestions} 
-                    onChange={(e) => setNumQuestions(Math.max(1, Math.min(20, parseInt(e.target.value, 10))))} 
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow empty string temporarily for editing
+                      if (value === '') {
+                        setNumQuestions('');
+                      } else {
+                        const parsed = parseInt(value, 10);
+                        if (!isNaN(parsed)) {
+                          setNumQuestions(Math.max(1, Math.min(20, parsed)).toString());
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // Set default if field is empty when user finishes editing
+                      if (e.target.value === '' || isNaN(parseInt(e.target.value, 10))) {
+                        setNumQuestions('5');
+                      }
+                    }}
                     min="1" 
                     max="20"
                     disabled={isGenerating}
@@ -304,70 +329,33 @@ export default function NewQuizPage() {
                   </Select>
                 </div>
 
-                {/* Novos campos de configuração adicionados à Fase 1 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="timeLimitMinutes">Limite de Tempo (minutos)</Label>
-                    <Input
-                      id="timeLimitMinutes"
-                      type="number"
-                      placeholder="Opcional (ex: 30)"
-                      value={timeLimitMinutes === undefined ? '' : timeLimitMinutes}
-                      onChange={(e) => setTimeLimitMinutes(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
-                      min="0"
-                      disabled={isGenerating}
-                    />
-                  </div>
                   <div>
                     <Label htmlFor="scoringType">Tipo de Pontuação</Label>
                     <Select
                       value={scoringType}
-                      onValueChange={(value: 'default' | 'custom') => setScoringType(value)}
+                    onValueChange={(value: 'default' | 'custom') => {
+                      setScoringType(value);
+                    }}
                       disabled={isGenerating}
                     >
                       <SelectTrigger id="scoringType">
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="default">Padrão</SelectItem>
-                        <SelectItem value="custom" disabled>Personalizado (em breve)</SelectItem>
+                      <SelectItem value="default">Padrão (1 ponto por pergunta)</SelectItem>
+                      <SelectItem value="custom">Personalizado (IA escolhe valores)</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="shuffleQuestions"
-                      checked={shuffleQuestions}
-                      onCheckedChange={setShuffleQuestions}
-                      disabled={isGenerating}
-                    />
-                    <Label htmlFor="shuffleQuestions" className="mb-0">Embaralhar Perguntas?</Label>
-                  </div>
-                  <div>
-                    <Label htmlFor="showCorrectAnswers">Mostrar Respostas Corretas</Label>
-                    <Select
-                      value={showCorrectAnswers}
-                      onValueChange={(value: 'immediately' | 'after_quiz' | 'never') => setShowCorrectAnswers(value)}
-                      disabled={isGenerating}
-                    >
-                      <SelectTrigger id="showCorrectAnswers">
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="immediately">Imediatamente</SelectItem>
-                        <SelectItem value="after_quiz">Ao final do quiz</SelectItem>
-                        <SelectItem value="never">Nunca</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
                 
                 <Button 
                   onClick={handleGenerateQuizWithAI} 
-                  disabled={isGenerating || isLoadingTranscriptions || transcriptions.length === 0 || !selectedTranscriptionId} 
+                  disabled={
+                    isGenerating || 
+                    isLoadingTranscriptions || 
+                    transcriptions.length === 0 || 
+                    !selectedTranscriptionId
+                  } 
                   className="w-full md:w-auto"
                 >
                   {isGenerating ? 'Gerando Quiz com IA...' : 'Gerar Quiz com IA'}
@@ -405,15 +393,6 @@ export default function NewQuizPage() {
             quiz={quizData} 
             onQuizChange={handleQuizDataChange} 
           />
-
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-3">Configurações Adicionais do Quiz</h3>
-            <QuizSettingsPanel 
-              quiz={quizSettings}
-              onSettingsChange={handleSettingsChange}
-              isEditing={!isSaving}
-            />
-          </div>
 
           {/* Mensagens de erro/sucesso para a fase de revisão/salvamento */}      
           {successMessage && <p className="text-center text-green-600 mb-3">{successMessage}</p>}

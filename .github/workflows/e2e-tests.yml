@@ -1,0 +1,431 @@
+name: 'End-to-End Tests'
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'Arquiz-Frontend/**'
+      - '.github/workflows/e2e-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'Arquiz-Frontend/**'
+      - '.github/workflows/e2e-tests.yml'
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test against'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+          - development
+      browsers:
+        description: 'Browsers to test'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - chromium
+          - firefox
+          - webkit
+          - mobile
+
+env:
+  CI: true
+  NODE_VERSION: '20'
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 0
+
+jobs:
+  test-matrix:
+    name: 'Setup Test Matrix'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Set test matrix
+        id: set-matrix
+        run: |
+          if [ "${{ github.event.inputs.browsers }}" = "all" ] || [ -z "${{ github.event.inputs.browsers }}" ]; then
+            echo 'matrix=["chromium", "firefox", "webkit", "mobile"]' >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.browsers }}" = "mobile" ]; then
+            echo 'matrix=["Mobile Chrome", "Mobile Safari"]' >> $GITHUB_OUTPUT
+          else
+            echo 'matrix=["${{ github.event.inputs.browsers }}"]' >> $GITHUB_OUTPUT
+          fi
+
+  e2e-tests:
+    name: 'E2E Tests (${{ matrix.browser }})'
+    runs-on: ubuntu-latest
+    needs: test-matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: ${{ fromJson(needs.test-matrix.outputs.matrix) }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'Arquiz-Frontend/package-lock.json'
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('Arquiz-Frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install frontend dependencies
+        working-directory: ./Arquiz-Frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: ./Arquiz-Frontend
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Start backend services
+        run: |
+          # Start backend services in background
+          cd Arquiz
+          npm install --silent
+          npm run start:dev &
+          echo "BACKEND_PID=$!" >> $GITHUB_ENV
+          
+          # Wait for backend to be ready
+          timeout 60 bash -c 'until curl -f http://localhost:3000/health; do sleep 2; done' || echo "Backend health check timeout"
+
+      - name: Start frontend application
+        working-directory: ./Arquiz-Frontend
+        run: |
+          npm run build
+          npm run start &
+          echo "FRONTEND_PID=$!" >> $GITHUB_ENV
+          
+          # Wait for frontend to be ready
+          timeout 60 bash -c 'until curl -f http://localhost:3000; do sleep 2; done' || echo "Frontend not ready"
+
+      - name: Run E2E tests
+        working-directory: ./Arquiz-Frontend
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          CI: true
+        run: |
+          case "${{ matrix.browser }}" in
+            "mobile")
+              npx playwright test --project="Mobile Chrome" --project="Mobile Safari" --reporter=html,junit,json
+              ;;
+            "Mobile Chrome"|"Mobile Safari")
+              npx playwright test --project="${{ matrix.browser }}" --reporter=html,junit,json
+              ;;
+            *)
+              npx playwright test --project=${{ matrix.browser }} --reporter=html,junit,json
+              ;;
+          esac
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.browser }}-${{ github.run_number }}
+          path: |
+            Arquiz-Frontend/test-results/
+            Arquiz-Frontend/playwright-report/
+          retention-days: 30
+
+      - name: Upload test reports to Pages
+        if: always() && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: Arquiz-Frontend/playwright-report/
+          name: e2e-report-${{ matrix.browser }}-${{ github.run_number }}
+
+      - name: Cleanup processes
+        if: always()
+        run: |
+          # Kill background processes
+          if [ ! -z "$BACKEND_PID" ]; then
+            kill $BACKEND_PID || true
+          fi
+          if [ ! -z "$FRONTEND_PID" ]; then
+            kill $FRONTEND_PID || true
+          fi
+
+  test-reporting:
+    name: 'Generate Test Reports'
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    if: always()
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'Arquiz-Frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./Arquiz-Frontend
+        run: npm ci
+
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+          pattern: e2e-results-*
+
+      - name: Merge test results
+        working-directory: ./Arquiz-Frontend
+        run: |
+          # Create unified results directory
+          mkdir -p unified-results
+          
+          # Merge JSON results
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const artifactsDir = '../artifacts';
+            
+            let allResults = [];
+            
+            if (fs.existsSync(artifactsDir)) {
+              const artifactDirs = fs.readdirSync(artifactsDir);
+              
+              artifactDirs.forEach(dir => {
+                const resultsPath = path.join(artifactsDir, dir, 'test-results', 'results.json');
+                if (fs.existsSync(resultsPath)) {
+                  const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+                  allResults.push(...(results.suites || []));
+                }
+              });
+            }
+            
+            const mergedResults = {
+              config: {
+                rootDir: process.cwd(),
+                version: '1.0.0'
+              },
+              suites: allResults,
+              stats: {
+                total: allResults.length,
+                passed: allResults.filter(s => s.specs?.every(spec => spec.tests?.every(t => t.results?.some(r => r.status === 'passed')))).length,
+                failed: allResults.filter(s => s.specs?.some(spec => spec.tests?.some(t => t.results?.some(r => r.status === 'failed')))).length
+              }
+            };
+            
+            fs.writeFileSync('unified-results/merged-results.json', JSON.stringify(mergedResults, null, 2));
+          "
+
+      - name: Generate comprehensive test report
+        working-directory: ./Arquiz-Frontend
+        run: |
+          # Generate health report
+          npm run test:health-report || echo "Health report generation failed"
+          
+          # Generate dashboard
+          npm run test:dashboard || echo "Dashboard generation failed"
+
+      - name: Create test summary
+        working-directory: ./Arquiz-Frontend
+        run: |
+          # Create markdown summary
+          cat > test-summary.md << 'EOF'
+          # E2E Test Results Summary
+          
+          ## Test Execution Details
+          - **Workflow Run**: #${{ github.run_number }}
+          - **Commit**: ${{ github.sha }}
+          - **Branch**: ${{ github.ref_name }}
+          - **Trigger**: ${{ github.event_name }}
+          - **Timestamp**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ## Browser Coverage
+          EOF
+          
+          # Add browser results if artifacts exist
+          if [ -d "../artifacts" ]; then
+            echo "| Browser | Status | Details |" >> test-summary.md
+            echo "|---------|--------|---------|" >> test-summary.md
+            
+            for artifact in ../artifacts/e2e-results-*; do
+              if [ -d "$artifact" ]; then
+                browser=$(basename "$artifact" | sed 's/e2e-results-\(.*\)-[0-9]*/\1/')
+                if [ -f "$artifact/test-results/results.json" ]; then
+                  echo "| $browser | ✅ Completed | Results available |" >> test-summary.md
+                else
+                  echo "| $browser | ❌ Failed | No results found |" >> test-summary.md
+                fi
+              fi
+            done
+          else
+            echo "No test artifacts found" >> test-summary.md
+          fi
+          
+          echo "" >> test-summary.md
+          echo "## Report Links" >> test-summary.md
+          echo "- [Detailed HTML Report](https://your-org.github.io/your-repo/e2e-reports/${{ github.run_number }}/)" >> test-summary.md
+          echo "- [Test Dashboard](./test-results/dashboard.html)" >> test-summary.md
+
+      - name: Upload unified results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unified-test-results-${{ github.run_number }}
+          path: |
+            Arquiz-Frontend/unified-results/
+            Arquiz-Frontend/test-results/
+            Arquiz-Frontend/test-summary.md
+          retention-days: 90
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let summary = 'E2E Test Results Summary not available';
+            
+            try {
+              summary = fs.readFileSync('Arquiz-Frontend/test-summary.md', 'utf8');
+            } catch (error) {
+              console.log('Could not read test summary:', error.message);
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  performance-tests:
+    name: 'Performance Tests'
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'Arquiz-Frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./Arquiz-Frontend
+        run: npm ci
+
+      - name: Install Playwright
+        working-directory: ./Arquiz-Frontend
+        run: npx playwright install chromium
+
+      - name: Run performance tests
+        working-directory: ./Arquiz-Frontend
+        run: |
+          # Run performance-focused tests
+          npx playwright test tests/e2e/accessibility-performance.spec.ts --project=chromium --reporter=json
+          
+          # Generate performance report
+          npm run test:performance || echo "Performance report generation failed"
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results-${{ github.run_number }}
+          path: Arquiz-Frontend/test-results/
+          retention-days: 30
+
+  security-tests:
+    name: 'Security Tests'
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'Arquiz-Frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./Arquiz-Frontend
+        run: npm ci
+
+      - name: Install Playwright
+        working-directory: ./Arquiz-Frontend
+        run: npx playwright install chromium
+
+      - name: Run security tests
+        working-directory: ./Arquiz-Frontend
+        run: |
+          # Run security-focused tests
+          npx playwright test tests/e2e/error-handling-edge-cases.spec.ts --project=chromium --reporter=json
+
+      - name: Upload security results
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-results-${{ github.run_number }}
+          path: Arquiz-Frontend/test-results/
+          retention-days: 90
+
+  deploy-reports:
+    name: 'Deploy Test Reports'
+    runs-on: ubuntu-latest
+    needs: [e2e-tests, test-reporting]
+    if: always() && github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: unified-test-results-${{ github.run_number }}
+
+  notify-slack:
+    name: 'Notify Slack'
+    runs-on: ubuntu-latest
+    needs: [e2e-tests, test-reporting]
+    if: always() && (github.event_name == 'push' || github.event_name == 'schedule')
+    
+    steps:
+      - name: Notify Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#e2e-testing'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }} 

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import type { Session } from 'next-auth';
 
 // Simulação de uma interface para o resultado do processamento
@@ -72,7 +72,7 @@ export async function processTranscription(
 }
 
 // TODO: Substituir pela variável de ambiente
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:3000";
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:7777";
 
 export interface Transcription {
   id: string;
@@ -249,7 +249,7 @@ export async function editTranscription(id: string, data: UpdateTranscriptionDat
   const backendData: { title?: string; description?: string; content?: string } = { ...data };
   if (data.name !== undefined) {
     backendData.title = data.name;
-    delete (backendData as any).name; // Remove 'name' para não enviar ao backend
+    delete (backendData as Record<string, unknown>).name; // Remove 'name' para não enviar ao backend
   }
 
   try {

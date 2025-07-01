@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import {
   getTranscriptions,
   Transcription,
-  addTranscription as serverAddTranscription,
   editTranscription as serverEditTranscription,
   deleteTranscription as serverDeleteTranscription,
   UpdateTranscriptionData,
@@ -28,60 +27,47 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 // Componente para o formulário de adicionar transcrição (placeholder por enquanto)
-// Idealmente, isso seria um Dialog ou um novo componente.
-const AddTranscriptionForm = ({ onClose, onAdd }: { onClose: () => void; onAdd: (data: { name: string; description?: string; content: string }) => Promise<void> }) => {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [content, setContent] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !content) {
-      setError('Nome e Conteúdo da transcrição são obrigatórios.');
-      return;
-    }
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      await onAdd({ name, description, content });
-      // Não fechar aqui, deixar o TranscriptionsPage controlar via setShowAddForm
-    } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : 'Erro ao adicionar.');
-    }
-    setIsSubmitting(false);
-  };
-
+function AddTranscriptionForm() {
   return (
-    <Card className="my-6">
+    <Card>
       <CardHeader>
         <CardTitle>Adicionar Nova Transcrição</CardTitle>
+        <CardDescription>
+          Faça upload de um arquivo de áudio ou vídeo para transcrição automática
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="transcription-name">Nome da Transcrição *</Label>
-            <Input type="text" id="transcription-name" value={name} onChange={(e) => setName(e.target.value)} required />
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="file">Arquivo de Áudio/Vídeo</Label>
+          <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+            <p className="text-muted-foreground">
+              Clique para selecionar ou arraste um arquivo aqui
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Formatos suportados: MP3, MP4, WAV, M4A (máx. 100MB)
+            </p>
           </div>
-          <div>
-            <Label htmlFor="transcription-description">Descrição (Opcional)</Label>
-            <Input type="text" id="transcription-description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
-          <div>
-            <Label htmlFor="transcription-content">Conteúdo da Transcrição *</Label>
-            <Textarea id="transcription-content" value={content} onChange={(e) => setContent(e.target.value)} rows={10} required />
+        
+        <div className="space-y-2">
+          <Label htmlFor="description">Descrição (Opcional)</Label>
+          <Textarea 
+            placeholder="Adicione uma descrição para esta transcrição..."
+            className="resize-none"
+          />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Adicionando...' : 'Adicionar Transcrição'}</Button>
-          </div>
-        </form>
+        
+        <Button className="w-full" disabled>
+          Fazer Upload e Transcrever
+        </Button>
+        
+        <p className="text-xs text-muted-foreground text-center">
+          Esta funcionalidade está em desenvolvimento
+        </p>
       </CardContent>
     </Card>
   );
-};
+}
 
 // Componente para o formulário de editar transcrição (usando Dialog)
 interface EditTranscriptionFormProps {
@@ -165,8 +151,30 @@ const EditTranscriptionForm: React.FC<EditTranscriptionFormProps> = ({ isOpen, o
   );
 };
 
+// Lista de transcrições (placeholder)
+function TranscriptionsTable() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Suas Transcrições</CardTitle>
+        <CardDescription>
+          Visualize e gerencie suas transcrições de áudio
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-center py-8 text-muted-foreground">
+          <p>Nenhuma transcrição encontrada</p>
+          <p className="text-sm mt-1">
+            Faça upload de um arquivo para começar
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function TranscriptionsPage() {
-  const { data: session, status: sessionStatus } = useSession();
+  const { status: sessionStatus } = useSession();
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -192,24 +200,11 @@ export default function TranscriptionsPage() {
   useEffect(() => {
     if (sessionStatus === 'authenticated') {
       fetchTranscriptions();
+    } else if (sessionStatus === 'unauthenticated') {
+      setError('Você precisa estar logado para ver as transcrições.');
+      setIsLoading(false);
     }
   }, [sessionStatus]);
-
-  const handleAddTranscription = async (data: { name: string; description?: string; content: string }) => {
-    if (!session || !session.accessToken) {
-        alert("Erro: Token de acesso não encontrado. Faça login novamente.");
-        return;
-    }
-    const response = await serverAddTranscription(data);
-    if (response.success && response.data) {
-      // setTranscriptions(prev => [response.data!, ...prev]); // Action já faz revalidate
-      await fetchTranscriptions(); // Re-fetch para pegar a lista atualizada
-      setShowAddForm(false);
-      alert('Transcrição adicionada com sucesso!');
-    } else {
-      alert(`Erro ao adicionar transcrição: ${response.message}`);
-    }
-  };
 
   const handleOpenEditModal = async (transcriptionItemFromList: Transcription) => {
     // Busca a transcrição completa para garantir que temos o conteúdo
@@ -285,7 +280,7 @@ export default function TranscriptionsPage() {
         </Button>
       </div>
 
-      {showAddForm && <AddTranscriptionForm onClose={() => setShowAddForm(false)} onAdd={handleAddTranscription} />}
+      {showAddForm && <AddTranscriptionForm />}
 
       {!showAddForm && (
         <>
@@ -297,14 +292,7 @@ export default function TranscriptionsPage() {
               <CardContent><p>{error}</p></CardContent>
             </Card>
           ) : transcriptions.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-center text-muted-foreground">Nenhuma transcrição encontrada.</p>
-                <p className="text-center mt-2">
-                  Clique em &quot;Adicionar Nova Transcrição&quot; para começar.
-                </p>
-              </CardContent>
-            </Card>
+            <TranscriptionsTable />
           ) : (
             <div className="space-y-4">
               {transcriptions.map((transcription) => (

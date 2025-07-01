@@ -1,0 +1,232 @@
+version: '3.8'
+
+services:
+  # Backend API service
+  backend:
+    build:
+      context: ../../Arquiz
+      dockerfile: Dockerfile.dev
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://test:test@postgres:5432/arquiz_test
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=test-secret-key
+      - API_PORT=3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../../Arquiz:/app
+      - /app/node_modules
+    networks:
+      - e2e-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Frontend application
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.e2e
+      target: development
+    environment:
+      - NODE_ENV=test
+      - NEXT_PUBLIC_API_URL=http://backend:3001
+      - NEXT_PUBLIC_WEBSOCKET_URL=ws://backend:3001
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ..:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - e2e-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+
+  # E2E Test Runner
+  e2e-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.e2e
+      target: ci
+    environment:
+      - NODE_ENV=test
+      - PLAYWRIGHT_BASE_URL=http://frontend:3000
+      - API_BASE_URL=http://backend:3001
+      - CI=true
+      - BROWSER=${BROWSER:-chromium}
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    volumes:
+      - ../test-results:/app/test-results
+      - ../playwright-report:/app/playwright-report
+    networks:
+      - e2e-network
+    command: >
+      sh -c "
+        echo 'Waiting for services to be ready...' &&
+        sleep 10 &&
+        echo 'Running E2E tests...' &&
+        npm run test:e2e -- --project=$${BROWSER:-chromium} --reporter=html,json,junit
+      "
+
+  # PostgreSQL database for testing
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_DB=arquiz_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./init-test-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - e2e-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d arquiz_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    networks:
+      - e2e-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Test data seeder
+  data-seeder:
+    build:
+      context: ../../Arquiz
+      dockerfile: Dockerfile.dev
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://test:test@postgres:5432/arquiz_test
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../../Arquiz:/app
+      - ./test-data:/app/test-data
+    networks:
+      - e2e-network
+    command: >
+      sh -c "
+        echo 'Seeding test data...' &&
+        npm run db:migrate &&
+        npm run db:seed:test &&
+        echo 'Test data seeding completed'
+      "
+
+  # Performance testing service
+  performance-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.e2e
+      target: ci
+    environment:
+      - NODE_ENV=test
+      - PLAYWRIGHT_BASE_URL=http://frontend:3000
+      - CI=true
+    depends_on:
+      frontend:
+        condition: service_healthy
+    volumes:
+      - ../test-results:/app/test-results
+    networks:
+      - e2e-network
+    profiles:
+      - performance
+    command: >
+      sh -c "
+        echo 'Running performance tests...' &&
+        npm run test:performance
+      "
+
+  # Security testing service
+  security-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.e2e
+      target: ci
+    environment:
+      - NODE_ENV=test
+      - PLAYWRIGHT_BASE_URL=http://frontend:3000
+      - CI=true
+    depends_on:
+      frontend:
+        condition: service_healthy
+    volumes:
+      - ../test-results:/app/test-results
+    networks:
+      - e2e-network
+    profiles:
+      - security
+    command: >
+      sh -c "
+        echo 'Running security tests...' &&
+        npx playwright test tests/e2e/error-handling-edge-cases.spec.ts --reporter=json
+      "
+
+  # Test report aggregator
+  report-aggregator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.e2e
+      target: ci
+    environment:
+      - NODE_ENV=test
+    volumes:
+      - ../test-results:/app/test-results
+      - ../playwright-report:/app/playwright-report
+    networks:
+      - e2e-network
+    profiles:
+      - reporting
+    command: >
+      sh -c "
+        echo 'Generating comprehensive test reports...' &&
+        npm run test:health-report &&
+        npm run test:dashboard &&
+        echo 'Test reporting completed'
+      "
+
+networks:
+  e2e-network:
+    driver: bridge
+
+volumes:
+  postgres_test_data:
+    driver: local 

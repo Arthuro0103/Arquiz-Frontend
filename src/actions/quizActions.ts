@@ -1,28 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache';
-
-// Estrutura do Quiz (idealmente, viria de um arquivo de tipos compartilhado com o backend)
-interface QuizQuestion {
-  id: string;
-  text: string;
-  options: { id: string; text: string }[];
-  correctOptionId: string;
-}
-export interface Quiz { // Exportando para ser usado em outros lugares se necessário
-  id: string;
-  title: string;
-  questions: QuizQuestion[];
-  // Adicionar outros campos conforme a necessidade do seu backend (userId, createdAt, etc.)
-}
-
-// Resultado da operação (pode ser ajustado conforme a resposta do backend)
-export interface ActionResult { // Exportando para ser usado em outros lugares se necessário
-  success: boolean;
-  message: string;
-  quizId?: string; // ou outros dados relevantes retornados pelo backend
-  data?: unknown; // Campo genérico para dados adicionais, se houver. Alterado de any para unknown.
-}
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { Quiz, ActionResult } from '@/types/quiz';
+import type { Session } from 'next-auth';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL;
 
@@ -35,6 +17,15 @@ if (!BASE_URL) {
   // ou ter um fallback, mas para comunicação com API, é geralmente crítico.
 }
 
+// Helper function to get authentication token
+async function getAuthToken(): Promise<string | null> {
+  const session = await getServerSession(authOptions) as Session | null;
+  if (!session || !session.accessToken) {
+    console.warn("[quizActions] getAuthToken: Sessão ou accessToken não encontrado.");
+    return null;
+  }
+  return session.accessToken;
+}
 
 // --- Server Actions --- 
 
@@ -137,9 +128,9 @@ export async function deleteQuiz(quizId: string): Promise<ActionResult> {
     try {
         const result = await response.json(); // Tenta parsear, pode falhar se for 204
         if (result && result.message) successMessage = result.message;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_e) {
-        // Ignora erro de parse se for 204 ou sem corpo.
+    } catch (error) {
+      console.error('Error during quiz validation:', error);
+      throw new Error('Erro inesperado durante validação');
     }
 
     console.log("[Server Action] deleteQuiz: Quiz deletado com sucesso:", quizId);
@@ -161,26 +152,33 @@ export async function deleteQuiz(quizId: string): Promise<ActionResult> {
 
 export async function getQuizzes(): Promise<Quiz[]> {
   console.log("[Server Action] getQuizzes: Buscando todos os quizzes");
+  
   if (!BASE_URL) {
     console.error("[Server Action] getQuizzes: Configuração de API ausente.");
-    return []; // Retorna array vazio ou lança erro, dependendo da preferência
+    return []; // Return empty array when API is not configured
   }
 
   try {
+    // Get authentication token
+    const token = await getAuthToken();
+    if (!token) {
+      console.error("[Server Action] getQuizzes: Token de autenticação não encontrado.");
+      return []; // Return empty array when not authenticated
+    }
+
     const response = await fetch(`${BASE_URL}/quizzes`, {
         method: 'GET',
         headers: {
-            'Accept': 'application/json', // Informa que esperamos JSON
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
         },
-        // cache: 'no-store' // Descomente se precisar sempre dos dados mais recentes, ignorando cache HTTP
+        // cache: 'no-store' // Uncomment if you need fresh data always
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Erro ao buscar quizzes.' }));
       console.error("[Server Action] getQuizzes: Erro da API", response.status, errorData.message);
-      // Lançar um erro aqui pode ser apropriado se a UI não puder lidar com uma lista vazia em caso de falha
-      // throw new Error(errorData.message || `Erro ${response.status} ao buscar quizzes.`);
-      return []; // Ou retorna vazio para a UI tratar
+      return []; // Return empty array on API error
     }
 
     const quizzes: Quiz[] = await response.json();
@@ -188,9 +186,7 @@ export async function getQuizzes(): Promise<Quiz[]> {
     return quizzes;
   } catch (error: unknown) {
     console.error("[Server Action] getQuizzes: Erro de fetch", error);
-    // const message = error instanceof Error ? error.message : "Erro de rede ou interno ao buscar quizzes."; // Atribuição removida
-    // throw new Error(message); // Ou retorna vazio
-    return [];
+    return []; // Return empty array on network error
   }
 }
 
@@ -206,10 +202,18 @@ export async function getQuizById(quizId: string): Promise<Quiz | null> {
   }
 
   try {
+    // Get authentication token
+    const token = await getAuthToken();
+    if (!token) {
+      console.error("[Server Action] getQuizById: Token de autenticação não encontrado.");
+      return null;
+    }
+
     const response = await fetch(`${BASE_URL}/quizzes/${quizId}`, {
         method: 'GET',
         headers: {
             'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
         },
         // cache: 'no-store'
     });
@@ -221,22 +225,18 @@ export async function getQuizById(quizId: string): Promise<Quiz | null> {
       }
       const errorData = await response.json().catch(() => ({ message: `Erro ao buscar quiz ${quizId}.` }));
       console.error("[Server Action] getQuizById: Erro da API", response.status, errorData.message);
-      // throw new Error(errorData.message || `Erro ${response.status} ao buscar quiz ${quizId}.`);
-      return null; // Ou lança erro
+      return null;
     }
 
     const quiz: Quiz | null = await response.json();
     if (quiz) {
         console.log(`[Server Action] getQuizById: Quiz ID ${quizId} encontrado.`);
     } else {
-        // Isso pode acontecer se o backend retornar 200 OK com corpo nulo/vazio
         console.warn(`[Server Action] getQuizById: Quiz ID ${quizId} retornou nulo apesar de status OK.`);
     }
     return quiz;
   } catch (error: unknown) {
     console.error(`[Server Action] getQuizById: Erro de fetch para ID ${quizId}`, error);
-    // const message = error instanceof Error ? error.message : `Erro de rede ou interno ao buscar quiz ${quizId}.`; // Atribuição removida
-    // throw new Error(message); // Ou retorna nulo
     return null;
   }
 } 

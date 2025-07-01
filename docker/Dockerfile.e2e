@@ -1,0 +1,110 @@
+# Multi-stage Dockerfile for E2E Testing
+# Base stage with Node.js and system dependencies
+FROM node:20-slim AS base
+
+# Install system dependencies for Playwright
+RUN apt-get update && apt-get install -y \
+    # Playwright browser dependencies
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libxss1 \
+    libasound2 \
+    libatspi2.0-0 \
+    libgtk-3-0 \
+    # Additional utilities
+    curl \
+    wget \
+    git \
+    # Cleanup
+    && rm -rf /var/lib/apt/lists/*
+
+# Development stage for local testing
+FROM base AS development
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Install Playwright browsers
+RUN npx playwright install --with-deps
+
+# Copy source code
+COPY . .
+
+# Expose port for development server
+EXPOSE 3000
+
+# Default command for development
+CMD ["npm", "run", "dev"]
+
+# CI stage optimized for testing
+FROM base AS ci
+
+WORKDIR /app
+
+# Copy package files first for better caching
+COPY package*.json ./
+
+# Install dependencies in CI mode
+RUN npm ci --only=production && npm ci
+
+# Install Playwright browsers with system dependencies
+RUN npx playwright install --with-deps chromium firefox webkit
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Create non-root user for security
+RUN groupadd -r playwright && useradd -r -g playwright -G audio,video playwright \
+    && mkdir -p /home/playwright/Downloads \
+    && chown -R playwright:playwright /home/playwright \
+    && chown -R playwright:playwright /app
+
+# Switch to non-root user
+USER playwright
+
+# Default command for CI testing
+CMD ["npm", "run", "test:e2e"]
+
+# Production stage for running tests against production builds
+FROM base AS production
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production
+
+# Install Playwright browsers
+RUN npx playwright install --with-deps chromium
+
+# Copy built application
+COPY --from=ci /app/.next ./.next
+COPY --from=ci /app/public ./public
+COPY --from=ci /app/tests ./tests
+COPY --from=ci /app/playwright.config.ts ./
+COPY --from=ci /app/next.config.js ./
+
+# Create non-root user
+RUN groupadd -r playwright && useradd -r -g playwright -G audio,video playwright \
+    && chown -R playwright:playwright /app
+
+USER playwright
+
+# Default command for production testing
+CMD ["npm", "run", "test:e2e:production"] 

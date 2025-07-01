@@ -3,10 +3,10 @@
 import { Quiz, QuestionDifficulty } from '@/types/quiz.types';
 import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Confirme se este path está correto para sua estrutura
+import { authOptions } from '@/lib/auth'; // Confirme se este path está correto para sua estrutura
 import type { Session } from 'next-auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:7777';
 console.log('[quiz.actions.ts] API_BASE_URL:', API_BASE_URL); // Log para depuração
 
 // Helper genérico para lidar com respostas da API (reutilizado de transcription.actions)
@@ -17,9 +17,10 @@ async function handleApiResponse(response: Response, operationName: string) {
     try {
       rawErrorBody = await response.text(); // Tenta ler como texto primeiro
       errorData = JSON.parse(rawErrorBody); // Tenta parsear como JSON
-    } catch (e: any) {
+    } catch (e: unknown) {
       // Se o parse falhar, errorData terá o texto e uma mensagem de erro de parse
-      errorData = { message: response.statusText, status: response.status, rawBody: rawErrorBody, parseError: e.message };
+      const parseError = e instanceof Error ? e.message : 'Erro desconhecido';
+      errorData = { message: response.statusText, status: response.status, rawBody: rawErrorBody, parseError };
     }
     console.error(`[quiz.actions.ts] handleApiResponse: API Error during ${operationName}:`, { 
       status: response.status,
@@ -96,7 +97,7 @@ export async function updateQuiz(quizId: string, quizData: Partial<Quiz>): Promi
   }
   console.log(`[${operation}] Dados recebidos para atualização:`, JSON.stringify(quizData, null, 2));
 
-  const backendUpdateDto: any = {};
+  const backendUpdateDto: Record<string, unknown> = {};
 
   if (quizData.title !== undefined) backendUpdateDto.title = quizData.title;
   if (quizData.description !== undefined) backendUpdateDto.description = quizData.description;
@@ -109,25 +110,29 @@ export async function updateQuiz(quizId: string, quizData: Partial<Quiz>): Promi
   }
   
   // Campos que o backend CreateQuizDto/UpdateQuizDto podem aceitar
-  if (quizData.status !== undefined) backendUpdateDto.status = quizData.status; 
   if (quizData.transcriptionId !== undefined) backendUpdateDto.transcriptionId = quizData.transcriptionId;
   // maxAttempts não está no tipo Quiz do frontend, se for necessário, adicionar ao tipo e aqui.
 
   // Mapeamento de questões. O backend UpdateQuizDto (via CreateQuizDto) espera Array de AddQuestionDto
-  // AddQuestionDto: { questionId: string; order: number; points: number; isOptional?: boolean; }
+  // AddQuestionDto: { questionId: string; order: number; points: number; }
   if (quizData.questions && Array.isArray(quizData.questions)) {
-    backendUpdateDto.questions = quizData.questions.map(q => {
-      if (q.order === undefined || q.points === undefined) {
-        console.warn(`[${operation}] Questão ID ${q.id} sem order ou points. Será omitida ou pode causar erro no backend se não forem opcionais.`);
-        // Poderia lançar erro ou filtrar esta questão, dependendo da regra de negócio
+    backendUpdateDto.questions = quizData.questions.map((q, index) => {
+      // Ensure we have the required fields
+      const questionId = q.id;
+      const order = q.order !== undefined ? q.order : index;
+      const points = q.points !== undefined ? q.points : 1;
+      
+      if (!questionId) {
+        console.warn(`[${operation}] Questão no índice ${index} sem ID. Será omitida.`);
+        return null;
       }
+      
       return {
-        questionId: q.id, 
-        order: q.order,
-        points: q.points,
-        isOptional: q.isOptional, 
+        questionId: questionId, 
+        order: order,
+        points: points,
       };
-    }).filter(q => q.order !== undefined && q.points !== undefined); // Filtra questões sem order/points para segurança
+    }).filter(q => q !== null); // Remove null entries
   }
 
   console.log(`[${operation}] Payload mapeado para o backend:`, JSON.stringify(backendUpdateDto, null, 2));
@@ -199,16 +204,12 @@ export async function getQuizById(quizId: string): Promise<Quiz | null> {
       console.log(`[${operation}] Quiz com ID ${quizId} não encontrado (404).`);
       return null;
     }
-    const quiz = await handleApiResponse(response, operation) as Quiz | null;
-    console.log(`[${operation}] Quiz ${quizId} encontrado:`, !!quiz);
+    const quiz = await handleApiResponse(response, operation) as Quiz;
+    console.log(`[${operation}] Quiz encontrado com sucesso. Título: ${quiz.title}`);
     return quiz;
   } catch (error) {
     console.error(`[${operation}] Falha ao buscar quiz ${quizId}:`, error);
-    // Se o erro for de autenticação, pode ser melhor relançá-lo ou tratar de forma específica
-    if (error instanceof Error && error.message.includes('Usuário não autenticado')) {
         throw error;
-    }
-    return null; // Retorna null em caso de outros erros para o componente tratar
   }
 }
 
@@ -242,10 +243,8 @@ export async function getQuizzesByUserId(userId: string): Promise<Quiz[]> {
   }
   try {
     const token = await getAuthToken();
-    // Normalmente, para buscar os quizzes do *usuário logado*, a API usaria o token para identificar o usuário.
-    // Se a API realmente espera um userId no query param E requer autenticação, então a chamada abaixo está correta.
-    // Se a API infere o userId do token, o query param userId pode não ser necessário.
-    const response = await fetch(`${API_BASE_URL}/quizzes?userId=${userId}`, { // Se a API usa /quizzes/my, ajuste a URL
+    // Use the /quizzes/my endpoint which properly loads quiz questions relations
+    const response = await fetch(`${API_BASE_URL}/quizzes/my`, {
       method: 'GET',
       headers: { 
         'Content-Type': 'application/json',
@@ -264,6 +263,35 @@ export async function getQuizzesByUserId(userId: string): Promise<Quiz[]> {
   }
 }
 
+export async function cloneQuiz(quizId: string): Promise<Quiz> {
+  const operation = 'cloneQuiz';
+  console.log(`[${operation}] Iniciando para quizId: ${quizId}`);
+  
+  if (!quizId) {
+    console.error(`[${operation}] ID do Quiz é obrigatório para clonagem.`);
+    throw new Error('ID do Quiz é obrigatório para clonagem.');
+  }
+
+  try {
+    const token = await getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/clone`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+    const clonedQuiz = await handleApiResponse(response, operation) as Quiz;
+    console.log(`[${operation}] Quiz clonado com sucesso. ID original: ${quizId}, ID clonado: ${clonedQuiz.id}`);
+    revalidatePath('/(app)/quizzes');
+    if (clonedQuiz.id) revalidatePath(`/(app)/quizzes/${clonedQuiz.id}/editar`);
+    return clonedQuiz;
+  } catch (error) {
+    console.error(`[${operation}] Falha ao clonar quiz ${quizId}:`, error);
+    throw error;
+  }
+}
+
 // Nova Server Action para gerar quiz a partir de transcrição
 export async function createQuizFromTranscription(
   transcriptionId: string, 
@@ -273,10 +301,12 @@ export async function createQuizFromTranscription(
   timeLimitMinutes?: number,
   scoringType?: 'default' | 'custom',
   shuffleQuestions?: boolean,
-  showCorrectAnswers?: 'immediately' | 'after_quiz' | 'never'
+  showCorrectAnswers?: 'immediately' | 'after_quiz' | 'never',
+  questionTimeLimit?: number,
+  customScoringConfig?: 'ai' | {[questionIndex: number]: number}
 ): Promise<Quiz> {
   const operation = 'createQuizFromTranscription';
-  console.log(`[${operation}] Iniciando para transcriçãoId: ${transcriptionId}, Título: ${title}, Perguntas: ${numQuestions}, Dificuldade: ${difficulty}, Limite Tempo: ${timeLimitMinutes}, Embaralhar: ${shuffleQuestions}, Mostrar Respostas: ${showCorrectAnswers}`);
+  console.log(`[${operation}] Iniciando para transcriçãoId: ${transcriptionId}, Título: ${title}, Perguntas: ${numQuestions}, Dificuldade: ${difficulty}, Limite Tempo: ${timeLimitMinutes}, Tempo por Pergunta: ${questionTimeLimit}, Embaralhar: ${shuffleQuestions}, Mostrar Respostas: ${showCorrectAnswers}, Pontuação Personalizada: ${JSON.stringify(customScoringConfig)}`);
   
   if (!transcriptionId) {
     console.error(`[${operation}] ID da Transcrição é obrigatório.`);
@@ -286,7 +316,18 @@ export async function createQuizFromTranscription(
   try {
     const token = await getAuthToken();
     
-    const payload: any = {
+    const payload: {
+      transcriptionId: string;
+      numQuestions: number;
+      title: string;
+      difficulty: QuestionDifficulty;
+      timeLimit?: number;
+      questionTimeLimit?: number;
+      shuffleQuestions?: boolean;
+      showFeedback?: boolean;
+      scoringType?: 'default' | 'custom';
+      customScoringConfig?: 'ai' | {[questionIndex: number]: number};
+    } = {
       transcriptionId,
       numQuestions,
       title: title || 'Quiz Gerado por IA',
@@ -296,15 +337,29 @@ export async function createQuizFromTranscription(
     if (timeLimitMinutes !== undefined) {
       payload.timeLimit = timeLimitMinutes * 60; // Backend espera em segundos
     }
+    if (questionTimeLimit !== undefined) {
+      payload.questionTimeLimit = questionTimeLimit; // Already in seconds
+    }
     if (shuffleQuestions !== undefined) {
       payload.shuffleQuestions = shuffleQuestions;
     }
     if (showCorrectAnswers !== undefined) {
       payload.showFeedback = showCorrectAnswers !== 'never';
     }
+    if (scoringType !== undefined) {
+      payload.scoringType = scoringType;
+    }
+    if (customScoringConfig !== undefined) {
+      payload.customScoringConfig = customScoringConfig;
+    }
 
     console.log(`[quiz.actions.ts] ${operation}: Payload enviado para API NestJS:`, payload);
     
+    // Create an AbortController for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 150000); // 2.5 minutes timeout
+    
+    try {
     const httpResponse = await fetch(`${API_BASE_URL}/quizzes/generate-from-transcription`, {
       method: 'POST',
       headers: { 
@@ -312,10 +367,11 @@ export async function createQuizFromTranscription(
         'Authorization': `Bearer ${token}` 
       },
       body: JSON.stringify(payload),
+        signal: controller.signal, // Add abort signal for timeout
     });
 
+      clearTimeout(timeoutId); // Clear timeout if request completes
     console.log(`[quiz.actions.ts] ${operation}: Resposta recebida da API NestJS. Status: ${httpResponse.status}, StatusText: ${httpResponse.statusText}`);
-    // Não vamos ler o corpo aqui diretamente, handleApiResponse fará isso.
 
     const generatedQuiz = await handleApiResponse(httpResponse, operation) as Quiz;
     console.log(`[quiz.actions.ts] ${operation}: Quiz gerado e processado por handleApiResponse. ID: ${generatedQuiz?.id}`);
@@ -323,6 +379,16 @@ export async function createQuizFromTranscription(
     revalidatePath('/(app)/quizzes');
     if (generatedQuiz.id) revalidatePath(`/(app)/quizzes/${generatedQuiz.id}/editar`);
     return generatedQuiz;
+    } catch (error) {
+      clearTimeout(timeoutId); // Clear timeout on error
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error(`[${operation}] Request timed out after 2.5 minutes`);
+        throw new Error('Quiz generation timed out. The transcription may be too long or the AI service is experiencing high demand. Please try again with fewer questions or a shorter transcription.');
+      }
+      
+      throw error; // Re-throw other errors
+    }
   } catch (error) {
     console.error(`[${operation}] Falha ao gerar quiz a partir da transcrição ${transcriptionId}:`, error);
     // Se o erro for de autenticação, pode ser melhor relançá-lo ou tratar de forma específica
@@ -331,5 +397,30 @@ export async function createQuizFromTranscription(
     }
     // Para outros erros, manter o comportamento anterior
     throw error; // Relança o erro original (que pode ser o da API ou o de autenticação)
+  }
+}
+
+export async function testOpenAiConnection(): Promise<{ success: boolean; message: string; responseTime: number }> {
+  const operation = 'testOpenAiConnection';
+  console.log(`[${operation}] Testando conectividade da API OpenAI...`);
+  try {
+    const token = await getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/questions/test-openai`, {
+      method: 'GET',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+    const result = await handleApiResponse(response, operation) as { success: boolean; message: string; responseTime: number };
+    console.log(`[${operation}] Teste concluído:`, result);
+    return result;
+  } catch (error) {
+    console.error(`[${operation}] Falha no teste:`, error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Erro desconhecido no teste de conectividade',
+      responseTime: 0
+    };
   }
 } 

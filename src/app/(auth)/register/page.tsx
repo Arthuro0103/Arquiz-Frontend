@@ -15,14 +15,6 @@ import Link from "next/link"
 import { FormEvent, useState } from "react"
 import { useRouter } from 'next/navigation'
 
-// Enum para UserRole, espelhando o backend
-// Idealmente, isso viria de um pacote compartilhado
-enum UserRole {
-  ADMIN = 'admin',
-  TEACHER = 'teacher',
-  STUDENT = 'student',
-}
-
 export default function RegisterPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -59,14 +51,14 @@ export default function RegisterPage() {
       return;
     }
     
-    const backendApiUrl = "http://localhost:3000"; // Hardcoded para depuração
+    const backendApiUrl = "http://localhost:7777"; // Hardcoded para depuração
     console.log("[ handleSubmit ] URL do Backend (hardcoded):", backendApiUrl);
 
     const payload = { 
       name, 
       email, 
       password, 
-      role: UserRole.STUDENT 
+      role: 'student' 
     };
     console.log("[ handleSubmit ] Payload para API:", payload);
 

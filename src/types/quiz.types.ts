@@ -12,7 +12,6 @@ export interface QuizQuestion {
   transcriptionId?: string; // Adicionado para vincular à transcrição
   order?: number;
   points?: number;
-  isOptional?: boolean;
   explanation?: string;
   difficulty?: QuestionDifficulty;
 }
@@ -25,6 +24,7 @@ export interface Quiz {
   userId?: string; // Para identificar o proprietário do quiz
   // Novas configurações do Quiz
   timeLimitMinutes?: number; 
+  questionTimeLimit?: number; // Time limit per question in seconds
   scoringType?: 'default' | 'custom'; // Futuramente podemos ter "points_per_question"
   shuffleQuestions?: boolean;
   showCorrectAnswers?: 'immediately' | 'after_quiz' | 'never';

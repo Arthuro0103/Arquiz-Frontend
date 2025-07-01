@@ -1,10 +1,10 @@
 'use server';
 
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import type { Session } from 'next-auth';
 
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:3000"; // Fallback para desenvolvimento
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:7777"; // Fallback para desenvolvimento
 
 export interface UserActionResponse {
   success: boolean;
