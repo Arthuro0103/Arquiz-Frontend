@@ -1,319 +1,283 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import { registerStoreResetter } from './utils/reset'
+import { devtools, subscribeWithSelector } from 'zustand/middleware'
+import type { 
+  Room, 
+  Participant, 
+  ParticipantRole,
+  CreateRoomDto,
+  UpdateRoomDto,
+  JoinRoomDto,
+  RoomError,
+  ConnectionQuality
+} from '../../../../shared/types'
+import { RoomStatus } from '../../../../shared/types'
 
-// Types for Room Store
-export interface Participant {
-  id: string
-  name: string
-  role: 'teacher' | 'student'
-  status: 'connected' | 'disconnected' | 'kicked'
-  joinedAt: string
-  lastSeen?: string
-  score?: number
-  answersSubmitted?: number
-}
+// Re-export shared types for convenience
+export type { 
+  Room, 
+  Participant, 
+  RoomStatus, 
+  ParticipantRole,
+  CreateRoomDto,
+  UpdateRoomDto,
+  JoinRoomDto,
+  RoomError,
+  ConnectionQuality
+} from '../../../../shared/types'
 
-export interface Room {
-  id: string
-  name: string
-  code?: string
-  accessCode: string
-  status: 'waiting' | 'active' | 'paused' | 'completed' | 'cancelled'
-  createdAt: string
-  maxParticipants: number
-  currentParticipants: number
-  quizId?: string
-  quizTitle?: string
-  description?: string
-  timeMode?: 'per_question' | 'per_quiz'
-  timePerQuestion?: number
-  timePerQuiz?: number
-  roomType?: 'public' | 'private'
-  quiz?: {
-    id: string
-    title: string
-    description?: string
-    totalQuestions: number
-    currentQuestionIndex: number
-    status: string
-  }
-}
-
+// Store state interface using shared types
 export interface RoomState {
-  // Current room data
+  // Current room state
   currentRoom: Room | null
   participants: Participant[]
-  isHost: boolean
-  userRole: 'teacher' | 'student' | null
-  
-  // Connection state
-  isConnectedToRoom: boolean
-  connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error'
-  lastError: string | null
-  
-  // Room management
-  roomHistory: Room[]
-  favoriteRooms: string[] // Room IDs
+  connectionQuality: ConnectionQuality | null
   
   // UI state
   isLoading: boolean
-  showParticipants: boolean
-  showChat: boolean
+  error: RoomError | null
+  isConnecting: boolean
+  reconnectAttempts: number
+  
+  // Room list state
+  roomList: Room[]
+  roomListLoading: boolean
+  roomListError: string | null
   
   // Actions
   setCurrentRoom: (room: Room | null) => void
-  updateRoom: (updates: Partial<Room>) => void
   setParticipants: (participants: Participant[]) => void
   addParticipant: (participant: Participant) => void
   removeParticipant: (participantId: string) => void
   updateParticipant: (participantId: string, updates: Partial<Participant>) => void
+  setConnectionQuality: (quality: ConnectionQuality) => void
   
-  // Connection management
-  setConnectionStatus: (status: RoomState['connectionStatus']) => void
-  setConnectedToRoom: (connected: boolean) => void
-  setError: (error: string | null) => void
+  // Error handling
+  setError: (error: RoomError | null) => void
+  clearError: () => void
   
-  // Room operations
-  joinRoom: (roomId: string, accessCode: string, userName: string, role: 'teacher' | 'student') => Promise<boolean>
-  leaveRoom: () => void
-  addToHistory: (room: Room) => void
-  toggleFavorite: (roomId: string) => void
-  
-  // UI actions
+  // Loading states
   setLoading: (loading: boolean) => void
-  toggleParticipants: () => void
-  toggleChat: () => void
+  setConnecting: (connecting: boolean) => void
   
-  // Utility actions
+  // Room list actions
+  setRoomList: (rooms: Room[]) => void
+  addRoom: (room: Room) => void
+  updateRoom: (roomId: string, updates: Partial<Room>) => void
+  removeRoom: (roomId: string) => void
+  
+  // Async actions
+  joinRoom: (accessCode: string) => Promise<void>
+  leaveRoom: () => Promise<void>
+  createRoom: (roomData: CreateRoomDto) => Promise<Room>
+  updateRoomSettings: (roomId: string, updates: UpdateRoomDto) => Promise<void>
+  
+  // Reset
   reset: () => void
-  clearHistory: () => void
 }
 
 // Initial state
 const initialState = {
   currentRoom: null,
   participants: [],
-  isHost: false,
-  userRole: null,
-  isConnectedToRoom: false,
-  connectionStatus: 'disconnected' as const,
-  lastError: null,
-  roomHistory: [],
-  favoriteRooms: [],
+  connectionQuality: null,
   isLoading: false,
-  showParticipants: true,
-  showChat: false,
+  error: null,
+  isConnecting: false,
+  reconnectAttempts: 0,
+  roomList: [],
+  roomListLoading: false,
+  roomListError: null,
 }
 
-// Create the Room Store
+// Create store with shared types
 export const useRoomStore = create<RoomState>()(
-  persist(
-    (set, get) => ({
+  devtools(
+    subscribeWithSelector((set, get) => ({
       ...initialState,
 
-        // Room data management
-        setCurrentRoom: (room) => {
-          set({ currentRoom: room })
-          if (room) {
-            get().addToHistory(room)
-          }
-        },
+      // Synchronous actions
+      setCurrentRoom: (room) => set({ currentRoom: room }),
+      
+      setParticipants: (participants) => set({ participants }),
+      
+      addParticipant: (participant) => set((state) => ({
+        participants: [...state.participants, participant]
+      })),
+      
+      removeParticipant: (participantId) => set((state) => ({
+        participants: state.participants.filter(p => p.id !== participantId)
+      })),
+      
+      updateParticipant: (participantId, updates) => set((state) => ({
+        participants: state.participants.map(p => 
+          p.id === participantId ? { ...p, ...updates } : p
+        )
+      })),
+      
+      setConnectionQuality: (quality) => set({ connectionQuality: quality }),
+      
+      setError: (error) => set({ error }),
+      clearError: () => set({ error: null }),
+      
+      setLoading: (loading) => set({ isLoading: loading }),
+      setConnecting: (connecting) => set({ isConnecting: connecting }),
+      
+      setRoomList: (roomList) => set({ roomList }),
+      
+      addRoom: (room) => set((state) => ({
+        roomList: [...state.roomList, room]
+      })),
+      
+      updateRoom: (roomId, updates) => set((state) => ({
+        roomList: state.roomList.map(room => 
+          room.id === roomId ? { ...room, ...updates } : room
+        ),
+        currentRoom: state.currentRoom?.id === roomId 
+          ? { ...state.currentRoom, ...updates }
+          : state.currentRoom
+      })),
+      
+      removeRoom: (roomId) => set((state) => ({
+        roomList: state.roomList.filter(room => room.id !== roomId),
+        currentRoom: state.currentRoom?.id === roomId ? null : state.currentRoom
+      })),
 
-        updateRoom: (updates) => {
-          const currentRoom = get().currentRoom
-          if (currentRoom) {
-            set({ currentRoom: { ...currentRoom, ...updates } })
-          }
-        },
-
-        // Participant management
-        setParticipants: (participants) => {
-          set({ participants })
-        },
-
-        addParticipant: (participant) => {
-          const participants = get().participants
-          const existingIndex = participants.findIndex(p => p.id === participant.id)
-          
-          if (existingIndex >= 0) {
-            // Update existing participant
-            const updatedParticipants = [...participants]
-            updatedParticipants[existingIndex] = { ...updatedParticipants[existingIndex], ...participant }
-            set({ participants: updatedParticipants })
-          } else {
-            // Add new participant
-            set({ participants: [...participants, participant] })
-          }
-        },
-
-        removeParticipant: (participantId) => {
-          set({ 
-            participants: get().participants.filter(p => p.id !== participantId) 
+      // Async actions
+      joinRoom: async (accessCode: string) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const response = await fetch('/api/rooms/join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessCode }),
           })
-        },
-
-        updateParticipant: (participantId, updates) => {
-          const participants = get().participants
-          const updatedParticipants = participants.map(p => 
-            p.id === participantId ? { ...p, ...updates } : p
-          )
-          set({ participants: updatedParticipants })
-        },
-
-        // Connection management
-        setConnectionStatus: (status) => {
-          set({ connectionStatus: status })
-          if (status === 'connected') {
-            set({ isConnectedToRoom: true, lastError: null })
-          } else if (status === 'error') {
-            set({ isConnectedToRoom: false })
+          
+          if (!response.ok) {
+            throw new Error(`Failed to join room: ${response.statusText}`)
           }
-        },
+          
+          const data = await response.json()
+          
+          set({ 
+            currentRoom: data.room,
+            participants: data.participants || [],
+            isLoading: false 
+          })
+        } catch (error) {
+          set({ 
+            error: {
+              code: 'JOIN_ROOM_FAILED',
+              message: error instanceof Error ? error.message : 'Failed to join room'
+            },
+            isLoading: false 
+          })
+        }
+      },
 
-        setConnectedToRoom: (connected) => {
-          set({ isConnectedToRoom: connected })
-        },
+      leaveRoom: async () => {
+        const { currentRoom } = get()
+        if (!currentRoom) return
 
-        setError: (error) => {
-          set({ lastError: error })
-        },
-
-        // Room operations
-        joinRoom: async (roomId, accessCode, userName, role) => {
-          try {
-            set({ isLoading: true, connectionStatus: 'connecting', lastError: null })
-            
-            // This would integrate with the WebSocket context
-            // For now, simulate the operation
-            await new Promise(resolve => setTimeout(resolve, 1000))
-            
-            set({ 
-              connectionStatus: 'connected',
-              isConnectedToRoom: true,
-              userRole: role,
-              isHost: role === 'teacher',
-              isLoading: false
-            })
-            
-            return true
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Failed to join room'
-            set({ 
-              connectionStatus: 'error',
-              isConnectedToRoom: false,
-              lastError: errorMessage,
-              isLoading: false
-            })
-            return false
-          }
-        },
-
-        leaveRoom: () => {
-          set({
+        set({ isLoading: true })
+        
+        try {
+          await fetch(`/api/rooms/${currentRoom.id}/leave`, {
+            method: 'POST',
+          })
+          
+          set({ 
             currentRoom: null,
             participants: [],
-            isConnectedToRoom: false,
-            connectionStatus: 'disconnected',
-            userRole: null,
-            isHost: false,
-            lastError: null
+            isLoading: false 
           })
-        },
+        } catch (error) {
+          set({ 
+            error: {
+              code: 'LEAVE_ROOM_FAILED',
+              message: error instanceof Error ? error.message : 'Failed to leave room'
+            },
+            isLoading: false 
+          })
+        }
+      },
 
-        addToHistory: (room) => {
-          const history = get().roomHistory
-          const existingIndex = history.findIndex(r => r.id === room.id)
+      createRoom: async (roomData: CreateRoomDto): Promise<Room> => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const response = await fetch('/api/rooms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(roomData),
+          })
           
-          if (existingIndex >= 0) {
-            // Update existing entry
-            const updatedHistory = [...history]
-            updatedHistory[existingIndex] = room
-            set({ roomHistory: updatedHistory })
-          } else {
-            // Add new entry (keep last 10)
-            const updatedHistory = [room, ...history].slice(0, 10)
-            set({ roomHistory: updatedHistory })
+          if (!response.ok) {
+            throw new Error(`Failed to create room: ${response.statusText}`)
           }
-        },
-
-        toggleFavorite: (roomId) => {
-          const favorites = get().favoriteRooms
-          const isFavorite = favorites.includes(roomId)
           
-          if (isFavorite) {
-            set({ favoriteRooms: favorites.filter(id => id !== roomId) })
-          } else {
-            set({ favoriteRooms: [...favorites, roomId] })
+          const room: Room = await response.json()
+          
+          set((state) => ({
+            roomList: [...state.roomList, room],
+            isLoading: false
+          }))
+          
+          return room
+        } catch (error) {
+          const roomError: RoomError = {
+            code: 'CREATE_ROOM_FAILED',
+            message: error instanceof Error ? error.message : 'Failed to create room'
           }
-        },
+          
+          set({ error: roomError, isLoading: false })
+          throw roomError
+        }
+      },
 
-        // UI actions
-        setLoading: (loading) => {
-          set({ isLoading: loading })
-        },
+      updateRoomSettings: async (roomId: string, updates: UpdateRoomDto) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const response = await fetch(`/api/rooms/${roomId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates),
+          })
+          
+          if (!response.ok) {
+            throw new Error(`Failed to update room: ${response.statusText}`)
+          }
+          
+          const updatedRoom: Room = await response.json()
+          
+          get().updateRoom(roomId, updatedRoom)
+          set({ isLoading: false })
+        } catch (error) {
+          set({ 
+            error: {
+              code: 'UPDATE_ROOM_FAILED',
+              message: error instanceof Error ? error.message : 'Failed to update room'
+            },
+            isLoading: false 
+          })
+        }
+      },
 
-        toggleParticipants: () => {
-          set({ showParticipants: !get().showParticipants })
-        },
-
-        toggleChat: () => {
-          set({ showChat: !get().showChat })
-        },
-
-        // Utility actions
-        reset: () => {
-          set(initialState)
-        },
-
-        clearHistory: () => {
-          set({ roomHistory: [], favoriteRooms: [] })
-        },
-      }),
-      {
-        name: 'arquiz-room-store',
-        partialize: (state) => ({
-          roomHistory: state.roomHistory,
-          favoriteRooms: state.favoriteRooms,
-          showParticipants: state.showParticipants,
-          showChat: state.showChat,
-        }),
-      }
-    )
+      reset: () => set(initialState),
+    })),
+    { name: 'room-store' }
   )
+)
 
-// Register reset function
-registerStoreResetter(() => {
-  useRoomStore.getState().reset()
-})
-
-// Computed selectors
+// Selectors for computed values
 export const roomSelectors = {
-  // Get participants by role
-  getTeachers: (state: RoomState) => state.participants.filter(p => p.role === 'teacher'),
-  getStudents: (state: RoomState) => state.participants.filter(p => p.role === 'student'),
-  
-  // Get connected participants
-  getConnectedParticipants: (state: RoomState) => 
-    state.participants.filter(p => p.status === 'connected'),
-  
-  // Get participant count
-  getParticipantCount: (state: RoomState) => state.participants.length,
-  
-  // Check if room is active
-  isRoomActive: (state: RoomState) => 
-    state.currentRoom?.status === 'active' && state.isConnectedToRoom,
-  
-  // Check if user can manage room
-  canManageRoom: (state: RoomState) => 
-    state.isHost && state.userRole === 'teacher',
-  
-  // Get room status info
-  getRoomStatusInfo: (state: RoomState) => ({
-    status: state.currentRoom?.status || 'unknown',
-    participantCount: state.participants.length,
-    maxParticipants: state.currentRoom?.maxParticipants || 0,
-    isConnected: state.isConnectedToRoom,
-    connectionStatus: state.connectionStatus,
-  }),
+  getCurrentRoom: (state: RoomState): Room | null => state.currentRoom,
+  getParticipants: (state: RoomState): Participant[] => state.participants,
+  getParticipantCount: (state: RoomState): number => state.participants.length,
+  getConnectionQuality: (state: RoomState): ConnectionQuality | null => state.connectionQuality,
+     isRoomActive: (state: RoomState): boolean => state.currentRoom?.status === RoomStatus.ACTIVE,
+  hasError: (state: RoomState): boolean => state.error !== null,
+  isConnected: (state: RoomState): boolean => 
+    state.currentRoom !== null && !state.isConnecting && state.error === null,
 } 

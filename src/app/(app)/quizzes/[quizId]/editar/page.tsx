@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import QuizPreview from '@/components/QuizPreview';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Quiz, QuestionDifficulty } from '@/types/quiz.types';
+import { Quiz, QuestionDifficulty, QuestionType } from '@/types/quiz.types';
 import { getQuizById, updateQuiz } from '@/actions/quiz.actions'; // Import actions
 import { Skeleton } from '@/components/ui/skeleton'; // Re-added Skeleton import
 
@@ -84,8 +84,9 @@ export default function EditQuizPage() {
                 return {
                   id: String(backendQuestion.id),
                   text: String(backendQuestion.text),
+                  type: QuestionType.MULTIPLE_CHOICE, // Use correct enum value
                   options: backendQuestion.options || [],
-                  correctOptionId: correctOptId,
+                  correctAnswer: correctOptId,
                   order: qq.order,
                   points: qq.points,
                   explanation: backendQuestion.explanation ? String(backendQuestion.explanation) : undefined,
@@ -108,20 +109,20 @@ export default function EditQuizPage() {
         // Double-check that questions is defined and is an array
         if (!fetchedQuiz.questions || !Array.isArray(fetchedQuiz.questions)) {
           console.error('[EditQuizPage] CRITICAL: fetchedQuiz.questions is not a valid array!', fetchedQuiz.questions);
-          fetchedQuiz.questions = []; // Fallback to empty array
+          // Create a new quiz object with an empty questions array
+          const quizWithEmptyQuestions = { ...fetchedQuiz, questions: [] };
+          setQuizData(quizWithEmptyQuestions);
+        } else {
+          setQuizData(fetchedQuiz);
         }
         
-        setQuizData(fetchedQuiz);
         // Initialize quizSettings from the fetched quiz
         setQuizSettings({
           title: fetchedQuiz.title, // Though title is often part of QuizPreview's direct edit
           description: fetchedQuiz.description,
           difficulty: fetchedQuiz.difficulty,
-          timeLimitMinutes: fetchedQuiz.timeLimitMinutes,
-          scoringType: fetchedQuiz.scoringType,
-          shuffleQuestions: fetchedQuiz.shuffleQuestions,
-          showCorrectAnswers: fetchedQuiz.showCorrectAnswers,
-          // questions are handled by QuizPreview
+          timeLimit: fetchedQuiz.timeLimit,
+          // Remove non-existent properties
         });
         setUiState('editing');
       } else {
@@ -185,10 +186,7 @@ export default function EditQuizPage() {
           title: savedQuiz.title,
           description: savedQuiz.description,
           difficulty: savedQuiz.difficulty,
-          timeLimitMinutes: savedQuiz.timeLimitMinutes,
-          scoringType: savedQuiz.scoringType,
-          shuffleQuestions: savedQuiz.shuffleQuestions,
-          showCorrectAnswers: savedQuiz.showCorrectAnswers,
+          timeLimit: savedQuiz.timeLimit,
       });
       setTimeout(() => {
         router.push('/quizzes');

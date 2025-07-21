@@ -1,32 +1,49 @@
-// Estrutura do Quiz (idealmente, viria de um arquivo de tipos compartilhado com o backend)
-interface QuizQuestion {
+// Re-export from shared types for type consistency across the application
+export type {
+  Quiz,
+  QuizDifficulty,
+  QuizStatus,
+  Question,
+  QuestionType,
+  QuestionDifficulty,
+  QuizSettings,
+  QuizResult,
+  QuizResponse,
+  CreateQuizDto,
+  UpdateQuizDto,
+  QuizSearchFilters,
+  QuizAnalytics,
+  DistractorAnalysis,
+  PerformanceMetrics
+  } from '../../../shared/types';
+
+// Re-export utility functions
+export type {
+  calculateQuizScore,
+  calculatePercentage,
+  isQuizPassed,
+  getCorrectAnswerCount,
+  calculateTotalTime,
+  getDifficultyColor,
+  validateQuizSettings,
+  isQuestionAnswered,
+  getQuestionTypeLabel
+} from '../../../shared/types';
+
+// Legacy interface for backward compatibility
+// @deprecated Use Quiz from shared types instead
+export interface QuizQuestion {
   id: string;
   text: string;
   options: { id: string; text: string }[];
   correctOptionId: string;
 }
 
-export enum QuizDifficulty {
-  EASY = 'easy',
-  MEDIUM = 'medium',
-  HARD = 'hard',
-  MIXED = 'mixed',
-}
-
-export interface Quiz {
-  id: string;
-  title: string;
-  description?: string;
-  difficulty: QuizDifficulty;
-  questions: QuizQuestion[];
-  createdBy: string;
-  // Adicionar outros campos conforme a necessidade do seu backend (userId, createdAt, etc.)
-}
-
-// Resultado da operação (pode ser ajustado conforme a resposta do backend)
+// Legacy interface for backward compatibility  
+// @deprecated Use QuizResponse from shared types instead
 export interface ActionResult {
   success: boolean;
   message: string;
-  quizId?: string; // ou outros dados relevantes retornados pelo backend
-  data?: unknown; // Campo genérico para dados adicionais, se houver. Alterado de any para unknown.
+  quizId?: string;
+  data?: unknown;
 } 

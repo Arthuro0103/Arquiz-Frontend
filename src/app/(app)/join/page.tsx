@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useWebSocket } from '@/contexts/WebSocketContext';
+import { useUnifiedWebSocket } from '@/contexts/UnifiedWebSocketContext';
 import { getRoomByAccessCode } from '@/actions/competitionActions';
 import { toast } from 'sonner';
 import { WebSocketStatus } from '@/components/WebSocketStatus';
@@ -62,7 +62,7 @@ interface RoomData {
 }
 
 interface JoinStep {
-  id: 'input' | 'validating' | 'connecting' | 'joining' | 'success';
+  id: string;
   title: string;
   description: string;
   icon: React.ReactNode;
@@ -85,11 +85,12 @@ function JoinRoomForm() {
     success: boolean;
     error?: string;
   }>>([]);
+  const [showAdvancedInfo, setShowAdvancedInfo] = useState(false);
   
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
-  const websocket = useWebSocket();
+  const websocket = useUnifiedWebSocket();
 
   // Join steps configuration
   const joinSteps: JoinStep[] = [
@@ -125,432 +126,296 @@ function JoinRoomForm() {
     }
   ];
 
-  // Enhanced validation with detailed logging
-  const validateRoom = useCallback(async (code: string) => {
-    if (code.length !== 6) return;
-    
-    setIsValidating(true);
-    setError(null);
-    setCurrentStep('validating');
-    setJoinProgress(25);
+  // Pre-fill room code from URL params
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code) {
+      setRoomCode(code);
+    }
+  }, [searchParams]);
 
-    console.log('[JoinRoom] 🔍 Validating room code:', { code, timestamp: new Date().toISOString() });
-
-    // Log the outgoing request
-    console.log('[JoinRoom] 📤 API REQUEST - validateRoom:', {
-      timestamp: new Date().toISOString(),
-      operation: 'getRoomByAccessCode',
-      parameters: {
-        accessCode: code
-      },
-      sessionInfo: {
-        hasSession: !!session,
-        hasAccessToken: !!session?.accessToken,
-        userId: session?.user?.id,
-        userEmail: session?.user?.email
-      }
-    });
-
-    const requestStartTime = Date.now();
-    
-    try {
-      const response = await getRoomByAccessCode(code);
-      const requestDuration = Date.now() - requestStartTime;
-      
-      console.log('[JoinRoom] 📥 API RESPONSE - validateRoom:', {
-        timestamp: new Date().toISOString(),
-        operation: 'getRoomByAccessCode',
-        parameters: {
-          accessCode: code
-        },
-        success: !!response,
-        duration: `${requestDuration}ms`,
-        response: response ? {
-          id: response.id,
-          name: response.name,
-          status: response.status,
-          participantCount: response.participantCount,
-          maxParticipants: response.maxParticipants,
-          roomType: response.roomType,
-          quizTitle: response.quizTitle,
-          quizDifficulty: response.quizDifficulty,
-          estimatedDuration: (response as { estimatedDuration?: number }).estimatedDuration,
-          category: (response as { category?: string }).category,
-          hostName: (response as { hostName?: string }).hostName,
-          createdAt: (response as { createdAt?: string }).createdAt
-        } : null
-      });
-
-      if (response) {
-        const roomInfo: RoomData = {
-          id: response.id,
-          name: response.name,
-          description: response.description,
-          status: response.status,
-          participantCount: response.participantCount || 0,
-          maxParticipants: response.maxParticipants || 50,
-          timeMode: response.timeMode,
-          quizTitle: response.quizTitle,
-          roomType: response.roomType,
-          accessCode: response.accessCode,
-          quizDifficulty: response.quizDifficulty as 'easy' | 'medium' | 'hard' | undefined,
-          estimatedDuration: (response as { estimatedDuration?: number }).estimatedDuration,
-          category: (response as { category?: string }).category,
-          tags: (response as { tags?: string[] }).tags,
-          hostName: (response as { hostName?: string }).hostName,
-          createdAt: (response as { createdAt?: string }).createdAt
-        };
-
-        setRoomData(roomInfo);
-        setJoinProgress(50);
-        setCurrentStep('input');
-
-        // Add to validation history
-        setValidationHistory(prev => [
-          ...prev.slice(-4), // Keep last 5 entries
-          {
-            code,
-            timestamp: new Date(),
-            success: true
-          }
-        ]);
-
-        console.log('[JoinRoom] ✅ VALIDATION SUCCESS:', {
-          timestamp: new Date().toISOString(),
-          code,
-          roomName: roomInfo.name,
-          duration: `${requestDuration}ms`,
-          roomInfo
-        });
-
-        toast.success(`Sala "${response.name}" encontrada!`);
-      } else {
-        throw new Error('Sala não encontrada');
-      }
-    } catch (err) {
-      const requestDuration = Date.now() - requestStartTime;
-      
-      console.error('[JoinRoom] 📥 API RESPONSE ERROR - validateRoom:', {
-        timestamp: new Date().toISOString(),
-        operation: 'getRoomByAccessCode',
-        parameters: {
-          accessCode: code
-        },
-        success: false,
-        duration: `${requestDuration}ms`,
-        error: {
-          message: err instanceof Error ? err.message : String(err),
-          stack: err instanceof Error ? err.stack : undefined,
-          type: err instanceof Error ? err.constructor.name : typeof err
-        }
-      });
-
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao buscar sala';
-      setError(errorMessage);
-      setRoomData(null);
-      setJoinProgress(0);
-      setCurrentStep('input');
-
-      // Add to validation history
-      setValidationHistory(prev => [
-        ...prev.slice(-4),
-        {
-          code,
-          timestamp: new Date(),
-          success: false,
-          error: errorMessage
-        }
-      ]);
-
-      console.log('[JoinRoom] ❌ VALIDATION FAILED:', {
-        timestamp: new Date().toISOString(),
-        code,
-        error: errorMessage,
-        duration: `${requestDuration}ms`
-      });
-
-      toast.error('Código de sala inválido');
-    } finally {
-      setIsValidating(false);
+  // Pre-fill student name if logged in
+  useEffect(() => {
+    if (session?.user?.name) {
+      setStudentName(session.user.name);
     }
   }, [session]);
 
-  // Enhanced join room with comprehensive tracking
+  const validateRoomCode = useCallback(async (code: string) => {
+    try {
+      setIsValidating(true);
+      setCurrentStep('validating');
+      setJoinProgress(25);
+      
+      const roomData = await getRoomByAccessCode(code);
+      
+             if (roomData) {
+         // Transform the response to match RoomData interface
+         const transformedRoomData: RoomData = {
+           id: roomData.id,
+           name: roomData.name,
+           description: roomData.description,
+           status: roomData.status as 'pending' | 'active' | 'finished',
+           participantCount: roomData.participantCount || 0,
+           maxParticipants: roomData.maxParticipants || 50,
+           timeMode: roomData.timeMode,
+           quizTitle: roomData.quizTitle,
+           roomType: roomData.roomType,
+           accessCode: roomData.accessCode,
+           quizDifficulty: roomData.quizDifficulty as 'easy' | 'medium' | 'hard' | undefined,
+           estimatedDuration: 0,
+           category: '',
+           tags: [],
+           hostName: roomData.hostName,
+           createdAt: roomData.createdAt,
+         };
+         
+         setRoomData(transformedRoomData);
+         setValidationHistory(prev => [...prev, {
+           code,
+           timestamp: new Date(),
+           success: true
+         }]);
+         return true;
+       }
+      
+      throw new Error('Sala não encontrada');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao validar código';
+      setValidationHistory(prev => [...prev, {
+        code,
+        timestamp: new Date(),
+        success: false,
+        error: errorMessage
+      }]);
+      throw err;
+    } finally {
+      setIsValidating(false);
+    }
+  }, []);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
+    
+    if (isSubmitting || !roomCode.trim() || !studentName.trim()) {
+      return;
+    }
+
     setIsSubmitting(true);
-    setConnectionAttempts(prev => prev + 1);
-    setLastAttemptTime(new Date());
-
-    console.log('[JoinRoom] 🚀 Starting join process:', {
-      roomCode,
-      studentName,
-      roomData: roomData?.id,
-      websocketConnected: websocket.isConnected,
-      attempt: connectionAttempts + 1,
-      timestamp: new Date().toISOString()
-    });
-
-    if (!studentName.trim()) {
-      setError('Por favor, insira seu nome no jogo');
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!roomData) {
-      setError('Por favor, insira um código de sala válido');
-      setIsSubmitting(false);
-      return;
-    }
+    setError(null);
+    setJoinProgress(0);
+    setCurrentStep('input');
 
     try {
-      // Step 1: Check WebSocket connection
+      // Step 1: Validate room code
+      await validateRoomCode(roomCode.trim());
+      
+      // Step 2: Connect to WebSocket
       setCurrentStep('connecting');
-      setJoinProgress(60);
-
-      if (!websocket.isConnected) {
-        console.log('[JoinRoom] ⚡ WebSocket not connected, attempting to reconnect');
-        websocket.forceReconnect();
-        
-        // Wait for connection with timeout
-        let connectionWait = 0;
-        const maxWait = 10000; // 10 seconds
-        const checkInterval = 500; // 500ms
-
-        while (!websocket.isConnected && connectionWait < maxWait) {
-          await new Promise(resolve => setTimeout(resolve, checkInterval));
-          connectionWait += checkInterval;
-          
-          console.log('[JoinRoom] ⏳ Waiting for WebSocket connection...', {
-            waited: connectionWait,
-            connected: websocket.isConnected
-          });
-        }
-
-        if (!websocket.isConnected) {
-          throw new Error('Não foi possível estabelecer conexão. Verifique sua internet.');
-        }
+      setJoinProgress(50);
+      
+      if (!websocket.connectionState.isConnected) {
+        setConnectionAttempts(prev => prev + 1);
+        setLastAttemptTime(new Date());
+        await websocket.connect();
       }
-
-      console.log('[JoinRoom] ✅ WebSocket connected, proceeding to join');
-
-      // Step 2: Join room via WebSocket
+      
+      // Step 3: Join room
       setCurrentStep('joining');
-      setJoinProgress(80);
-
-      const joinData = {
-        roomId: roomData.id,
-        accessCode: roomData.accessCode,
-        name: studentName.trim(),
-        role: 'student' as const
-      };
-
-      console.log('[JoinRoom] 📤 Sending join room request:', joinData);
-
-      const joinSuccess = await websocket.joinRoom(joinData);
-
-      if (joinSuccess) {
-        console.log('[JoinRoom] ✅ Successfully joined room');
-        
+      setJoinProgress(75);
+      
+      const joinResult = await websocket.joinRoom({
+        roomId: roomData!.id,
+        accessCode: roomCode.trim(),
+        displayName: studentName.trim(),
+      });
+      
+      if (joinResult.success) {
         setCurrentStep('success');
         setJoinProgress(100);
+        toast.success('Entrou na sala com sucesso!');
         
-        // Store student name in localStorage for future use
-        localStorage.setItem('studentName', studentName.trim());
-        
-        toast.success(`Bem-vindo à sala "${roomData.name}"!`);
-        
-        // Wait a moment before redirecting to show success state
+        // Redirect to room lobby
         setTimeout(() => {
-          router.push(`/rooms/${roomData.id}/lobby`);
+          router.push(`/rooms/${roomData!.id}/lobby`);
         }, 1500);
       } else {
-        throw new Error('Falha ao entrar na sala. Tente novamente.');
+        throw new Error(joinResult.error || 'Falha ao entrar na sala');
       }
-
+      
     } catch (err) {
-      console.error('[JoinRoom] ❌ Join failed:', {
-        error: err,
-        roomCode,
-        studentName,
-        attempt: connectionAttempts + 1,
-        timestamp: new Date().toISOString()
-      });
-
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido ao entrar na sala';
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao entrar na sala';
       setError(errorMessage);
       setCurrentStep('input');
       setJoinProgress(0);
-      
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Auto-fill and validation effects
-  useEffect(() => {
-    const codeFromUrl = searchParams.get('code');
-    if (codeFromUrl) {
-      const upperCode = codeFromUrl.toUpperCase();
-      setRoomCode(upperCode);
-      validateRoom(upperCode);
-    }
-  }, [searchParams, validateRoom]);
-
-  useEffect(() => {
-    if (session?.user?.name && !studentName) {
-      setStudentName(session.user.name);
-    } else {
-      const storedName = localStorage.getItem('studentName');
-      if (storedName && !studentName) {
-        setStudentName(storedName);
-      }
-    }
-  }, [session, studentName]);
-
-  useEffect(() => {
-    if (roomCode.length === 6) {
-      const timeoutId = setTimeout(() => {
-        validateRoom(roomCode);
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    } else {
-      setRoomData(null);
-      setError(null);
-    }
-  }, [roomCode, validateRoom]);
-
-  // Utility functions
-  const formatDifficulty = (difficulty?: string) => {
+  const getDifficultyColor = (difficulty?: string) => {
     switch (difficulty) {
-      case 'easy': return { text: 'Fácil', color: 'bg-green-500' };
-      case 'medium': return { text: 'Médio', color: 'bg-yellow-500' };
-      case 'hard': return { text: 'Difícil', color: 'bg-red-500' };
-      default: return { text: 'N/A', color: 'bg-gray-500' };
+      case 'easy': return 'text-green-600 bg-green-50';
+      case 'medium': return 'text-yellow-600 bg-yellow-50';
+      case 'hard': return 'text-red-600 bg-red-50';
+      default: return 'text-gray-600 bg-gray-50';
     }
   };
 
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'N/A';
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes} min`;
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'active': return 'text-green-600 bg-green-50';
+      case 'pending': return 'text-blue-600 bg-blue-50';
+      case 'finished': return 'text-gray-600 bg-gray-50';
+      default: return 'text-gray-600 bg-gray-50';
+    }
   };
 
-  const getStepIcon = (stepId: string) => {
-    const step = joinSteps.find(s => s.id === stepId);
-    return step?.icon || <AlertCircle className="h-5 w-5" />;
-  };
-
-  const getCurrentStepIndex = () => {
-    return joinSteps.findIndex(step => step.id === currentStep);
+  const renderStepIndicator = () => {
+    const currentStepIndex = joinSteps.findIndex(step => step.id === currentStep);
+    
+    return (
+      <div className="flex items-center justify-between mb-6">
+        {joinSteps.map((step, index) => (
+          <React.Fragment key={step.id}>
+            <div className={`flex items-center ${
+              index <= currentStepIndex ? 'text-blue-600' : 'text-gray-400'
+            }`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 ${
+                index <= currentStepIndex ? 'bg-blue-600 text-white' : 'bg-gray-200'
+              }`}>
+                {step.icon}
+              </div>
+              <div className="hidden sm:block">
+                <div className="text-sm font-medium">{step.title}</div>
+                <div className="text-xs text-gray-500">{step.description}</div>
+              </div>
+            </div>
+            {index < joinSteps.length - 1 && (
+              <div className={`h-0.5 flex-1 mx-4 ${
+                index < currentStepIndex ? 'bg-blue-600' : 'bg-gray-200'
+              }`} />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Entrar na Competição
-          </h1>
-          <p className="text-muted-foreground">
-            Digite o código da sala para participar de uma competição de quiz
-          </p>
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
+            <Users className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Entrar na Sala</h1>
+          <p className="text-gray-600">Digite o código da sala para participar do quiz</p>
         </div>
 
-        {/* Connection Status */}
-        <WebSocketStatus variant="compact" className="w-full" />
+        {/* Step Indicator */}
+        {renderStepIndicator()}
 
-        {/* Progress Steps */}
-        {(currentStep !== 'input' || isSubmitting) && (
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">Progresso da Entrada</h3>
-                <span className="text-sm text-muted-foreground">{Math.round(joinProgress)}%</span>
-              </div>
-              
-              <Progress value={joinProgress} className="mb-4" />
-              
-              <div className="flex items-center justify-between">
-                {joinSteps.map((step, index) => (
-                  <div key={step.id} className="flex flex-col items-center space-y-1">
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium
-                      ${getCurrentStepIndex() === index 
-                        ? 'bg-blue-600 text-white' 
-                        : getCurrentStepIndex() > index 
-                          ? 'bg-green-600 text-white' 
-                          : 'bg-gray-200 text-gray-600'}
-                    `}>
-                      {getCurrentStepIndex() > index ? (
-                        <CheckCircle className="h-4 w-4" />
-                      ) : (
-                        getStepIcon(step.id)
-                      )}
-                    </div>
-                    <span className="text-xs text-center max-w-16">{step.title}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Main Join Form */}
-        <Card>
+        {/* Main Form */}
+        <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-600" />
-              Código da Sala
+            <CardTitle className="text-center">
+              {currentStep === 'success' ? 'Sucesso!' : 'Detalhes da Entrada'}
             </CardTitle>
-            <CardDescription>
-              Insira o código de 6 caracteres fornecido pelo professor
+            <CardDescription className="text-center">
+              {currentStep === 'success' 
+                ? 'Redirecionando para a sala...' 
+                : 'Preencha as informações para entrar na sala'
+              }
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* Progress Bar */}
+            {isSubmitting && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Progresso</span>
+                  <span>{joinProgress}%</span>
+                </div>
+                <Progress value={joinProgress} className="h-2" />
+              </div>
+            )}
+
+            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Room Code Input */}
               <div className="space-y-2">
                 <Label htmlFor="roomCode">Código da Sala</Label>
-                <div className="relative">
-                  <Input
-                    id="roomCode"
-                    value={roomCode}
-                    onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                    placeholder="Ex: ABC123"
-                    maxLength={6}
-                    className="text-center text-lg font-mono tracking-wider uppercase"
-                    disabled={isSubmitting || isValidating}
-                  />
-                  {isValidating && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                    </div>
-                  )}
-                </div>
-                {roomCode.length > 0 && roomCode.length < 6 && (
-                  <p className="text-xs text-muted-foreground">
-                    Digite {6 - roomCode.length} caracteres restantes
-                  </p>
-                )}
-              </div>
-
-              {/* Student Name Input */}
-              <div className="space-y-2">
-                <Label htmlFor="studentName">Seu Nome no Jogo</Label>
                 <Input
-                  id="studentName"
-                  value={studentName}
-                  onChange={(e) => setStudentName(e.target.value)}
-                  placeholder="Digite seu nome"
-                  maxLength={50}
+                  id="roomCode"
+                  type="text"
+                  placeholder="Digite o código da sala"
+                  value={roomCode}
+                  onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                   disabled={isSubmitting}
+                  required
+                  className="text-center text-lg font-mono tracking-wider"
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="studentName">Seu Nome</Label>
+                <Input
+                  id="studentName"
+                  type="text"
+                  placeholder="Digite seu nome"
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+
+              {/* Room Information */}
+              {roomData && (
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-blue-900">{roomData.name}</h3>
+                      <Badge className={getStatusColor(roomData.status)}>
+                        {roomData.status}
+                      </Badge>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-700">Quiz:</span>
+                        <span className="text-blue-900 font-medium">{roomData.quizTitle}</span>
+                      </div>
+                      
+                      {roomData.quizDifficulty && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-blue-700">Dificuldade:</span>
+                          <Badge className={getDifficultyColor(roomData.quizDifficulty)}>
+                            {roomData.quizDifficulty}
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-700">Participantes:</span>
+                        <span className="text-blue-900">
+                          {roomData.participantCount || 0}/{roomData.maxParticipants || '∞'}
+                        </span>
+                      </div>
+                      
+                      {roomData.estimatedDuration && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-blue-700">Duração:</span>
+                          <span className="text-blue-900">{roomData.estimatedDuration} min</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Error Display */}
               {error && (
@@ -560,237 +425,110 @@ function JoinRoomForm() {
                 </Alert>
               )}
 
-              {/* Room Information */}
-              {roomData && (
-                <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <h3 className="font-semibold text-lg">{roomData.name}</h3>
-                      {roomData.description && (
-                        <p className="text-sm text-muted-foreground">{roomData.description}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {roomData.roomType === 'private' ? (
-                        <Lock className="h-4 w-4 text-yellow-600" />
-                      ) : (
-                        <Unlock className="h-4 w-4 text-green-600" />
-                      )}
-                      <Badge variant={roomData.status === 'active' ? 'default' : 'secondary'}>
-                        {roomData.status === 'active' ? 'Ativa' : 
-                         roomData.status === 'pending' ? 'Aguardando' : 'Finalizada'}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Target className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Quiz:</span>
-                      </div>
-                      <p className="text-muted-foreground">{roomData.quizTitle}</p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Participantes:</span>
-                      </div>
-                      <p className="text-muted-foreground">
-                        {roomData.participantCount || 0} / {roomData.maxParticipants || 50}
-                      </p>
-                    </div>
-
-                    {roomData.quizDifficulty && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Star className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Dificuldade:</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${formatDifficulty(roomData.quizDifficulty).color}`} />
-                          <span className="text-muted-foreground">
-                            {formatDifficulty(roomData.quizDifficulty).text}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {roomData.estimatedDuration && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Timer className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Duração:</span>
-                        </div>
-                        <p className="text-muted-foreground">
-                          {formatDuration(roomData.estimatedDuration)}
-                        </p>
-                      </div>
-                    )}
-
-                    {roomData.hostName && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Crown className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Professor:</span>
-                        </div>
-                        <p className="text-muted-foreground">{roomData.hostName}</p>
-                      </div>
-                    )}
-
-                    {roomData.timeMode && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Modo:</span>
-                        </div>
-                        <p className="text-muted-foreground">
-                          {roomData.timeMode === 'per_question' ? 'Por pergunta' : 'Quiz completo'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {roomData.tags && roomData.tags.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium text-sm">Categorias:</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {roomData.tags.map((tag, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
               {/* Submit Button */}
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isSubmitting || isValidating || !roomData || !studentName.trim() || !websocket.isConnected}
-                size="lg"
+              <Button 
+                type="submit" 
+                className="w-full h-12 text-lg"
+                disabled={isSubmitting || !roomCode.trim() || !studentName.trim()}
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {currentStep === 'connecting' ? 'Conectando...' :
-                     currentStep === 'joining' ? 'Entrando na sala...' :
-                     currentStep === 'success' ? 'Redirecionando...' : 'Processando...'}
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    {currentStep === 'validating' && 'Validando...'}
+                    {currentStep === 'connecting' && 'Conectando...'}
+                    {currentStep === 'joining' && 'Entrando...'}
+                    {currentStep === 'success' && 'Sucesso!'}
                   </>
                 ) : (
                   <>
-                    <Play className="mr-2 h-4 w-4" />
-                    Entrar na Competição
+                    <UserCheck className="h-5 w-5 mr-2" />
+                    Entrar na Sala
                   </>
                 )}
               </Button>
             </form>
-          </CardContent>
 
-          {/* Advanced Info Panel */}
-          <CardFooter className="bg-muted/30">
-            <div className="w-full space-y-4">
+            {/* Advanced Info Toggle */}
+            <div className="pt-4 border-t">
               <Button
                 variant="ghost"
+                size="sm"
                 onClick={() => setShowAdvancedInfo(!showAdvancedInfo)}
-                className="w-full justify-between"
+                className="w-full"
               >
-                <span className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Informações Avançadas
-                </span>
-                {showAdvancedInfo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showAdvancedInfo ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                {showAdvancedInfo ? 'Ocultar' : 'Mostrar'} Informações Avançadas
               </Button>
-
+              
               {showAdvancedInfo && (
-                <div className="space-y-4 text-xs">
-                  <Separator />
-                  
-                  {/* Connection Info */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="font-medium mb-2">Estado da Conexão</p>
-                      <div className="space-y-1 text-muted-foreground">
-                        <div>WebSocket: {websocket.isConnected ? '✅ Conectado' : '❌ Desconectado'}</div>
-                        <div>Estado: {websocket.connectionState}</div>
-                        <div>Qualidade: {websocket.connectionQuality}</div>
-                        <div>Tentativas: {connectionAttempts}</div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="font-medium mb-2">Tentativas de Validação</p>
-                      <div className="space-y-1">
-                        {validationHistory.slice(-3).map((attempt, index) => (
-                          <div key={index} className="flex items-center gap-2 text-muted-foreground">
-                            {attempt.success ? (
-                              <CheckCircle className="h-3 w-3 text-green-600" />
-                            ) : (
-                              <XCircle className="h-3 w-3 text-red-600" />
-                            )}
-                            <span>{attempt.code}</span>
-                            <span className="text-xs">
-                              {attempt.timestamp.toLocaleTimeString()}
-                            </span>
-                          </div>
-                        ))}
-                        {validationHistory.length === 0 && (
-                          <div className="text-muted-foreground">Nenhuma tentativa ainda</div>
-                        )}
-                      </div>
+                <div className="mt-4 space-y-3">
+                  {/* WebSocket Status */}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Status WebSocket:</span>
+                    <div className={`flex items-center gap-2 ${
+                      websocket.connectionState.isConnected ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {websocket.connectionState.isConnected ? (
+                        <Wifi className="h-4 w-4" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                      <span>{websocket.connectionState.isConnected ? 'Conectado' : 'Desconectado'}</span>
                     </div>
                   </div>
 
-                  {lastAttemptTime && (
-                    <>
-                      <Separator />
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">Última tentativa:</span>
-                        <span className="text-muted-foreground">
-                          {lastAttemptTime.toLocaleTimeString()}
-                        </span>
-                      </div>
-                    </>
+                  {/* Connection Attempts */}
+                  {connectionAttempts > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Tentativas de Conexão:</span>
+                      <span className="text-gray-900">{connectionAttempts}</span>
+                    </div>
                   )}
 
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push('/')}
-                    >
-                      <Home className="h-3 w-3 mr-2" />
-                      Voltar ao Início
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={websocket.forceReconnect}
-                      disabled={websocket.isConnected}
-                    >
-                      <RefreshCw className="h-3 w-3 mr-2" />
-                      Reconectar
-                    </Button>
-                  </div>
+                  {/* Last Attempt Time */}
+                  {lastAttemptTime && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Última Tentativa:</span>
+                      <span className="text-gray-900">{lastAttemptTime.toLocaleTimeString()}</span>
+                    </div>
+                  )}
+
+                  {/* Validation History */}
+                  {validationHistory.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-sm font-medium text-gray-700">Histórico de Validação:</span>
+                      <div className="max-h-20 overflow-y-auto space-y-1">
+                        {validationHistory.slice(-3).map((entry, index) => (
+                          <div key={index} className="flex items-center justify-between text-xs">
+                            <span className="font-mono">{entry.code}</span>
+                            <div className="flex items-center gap-1">
+                              {entry.success ? (
+                                <CheckCircle className="h-3 w-3 text-green-500" />
+                              ) : (
+                                <XCircle className="h-3 w-3 text-red-500" />
+                              )}
+                              <span className="text-gray-500">
+                                {entry.timestamp.toLocaleTimeString()}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          </CardFooter>
+          </CardContent>
         </Card>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <Button variant="outline" onClick={() => router.push('/rooms')}>
+            <Home className="h-4 w-4 mr-2" />
+            Voltar para Salas
+          </Button>
+        </div>
       </div>
     </div>
   );

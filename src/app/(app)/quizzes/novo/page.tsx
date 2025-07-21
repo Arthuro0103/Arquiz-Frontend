@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Quiz, QuestionDifficulty } from '@/types/quiz.types';
+import { Quiz, QuestionDifficulty, QuestionType } from '@/types/quiz.types';
 import { createQuizFromTranscription, updateQuiz } from '@/actions/quiz.actions';
 import { getTranscriptions, type Transcription } from '@/actions/transcriptionActions';
 
@@ -97,7 +97,6 @@ export default function NewQuizPage() {
 
       if (generatedQuiz && generatedQuiz.id) {
         console.log('[NewQuizPage] Quiz gerado com IA (antes de setQuizData):', JSON.stringify(generatedQuiz, null, 2));
-        console.log('[NewQuizPage] scoringType in generated quiz:', generatedQuiz.scoringType);
         console.log('[NewQuizPage] questions in generated quiz:', generatedQuiz.questions?.length || 0);
         if (generatedQuiz.questions && generatedQuiz.questions.length > 0) {
           console.log('[NewQuizPage] First question points:', generatedQuiz.questions[0].points);
@@ -105,8 +104,8 @@ export default function NewQuizPage() {
         }
         setQuizData(generatedQuiz);
         setQuizSettings({
-          timeLimitMinutes: generatedQuiz.timeLimitMinutes,
-          scoringType: generatedQuiz.scoringType,
+          timeLimit: generatedQuiz.timeLimit,
+          // Remove non-existent properties
         });
         setUiState('reviewingQuiz');
         setSuccessMessage('Quiz gerado pela IA com sucesso! Revise e salve abaixo.');
@@ -150,17 +149,14 @@ export default function NewQuizPage() {
       title: quizData.title,
       description: quizData.description,
       difficulty: quizData.difficulty,
-      transcriptionId: quizData.transcriptionId,
-      // Map frontend timeLimitMinutes to backend timeLimit (in seconds)
-      timeLimitMinutes: quizSettings.timeLimitMinutes,
-      // Include other settings
-      scoringType: quizSettings.scoringType || quizData.scoringType,
+      timeLimit: quizSettings.timeLimit || quizData.timeLimit,
       // Include the questions with proper structure
       questions: quizData.questions?.map((q, index) => ({
         id: q.id,
         text: q.text,
+        type: QuestionType.MULTIPLE_CHOICE, // Add required type property
         options: q.options,
-        correctOptionId: q.correctOptionId,
+        correctAnswer: q.correctAnswer,
         order: q.order !== undefined ? q.order : index,
         points: q.points !== undefined ? q.points : 1,
         explanation: q.explanation,

@@ -1,259 +1,514 @@
 import { defineConfig, devices } from '@playwright/test';
+import type { PlaywrightTestConfig } from '@playwright/test';
 
 /**
- * Enhanced Playwright Configuration
- * @see https://playwright.dev/docs/test-configuration
+ * Enhanced Playwright Configuration for ArQuiz
+ * 
+ * Comprehensive testing setup including:
+ * - Cross-browser testing (Chrome, Firefox, Safari)
+ * - Mobile device testing
+ * - Performance monitoring
+ * - Security testing
+ * - Accessibility validation
+ * - Visual regression testing
+ * - API testing integration
+ * - Parallel execution optimization
+ */
+
+// Environment configuration
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001';
+const CI = !!process.env.CI;
+const HEADLESS = process.env.PLAYWRIGHT_HEADLESS !== 'false';
+const WORKERS = process.env.PLAYWRIGHT_WORKERS ? parseInt(process.env.PLAYWRIGHT_WORKERS) : CI ? 2 : 4;
+
+// Test timeouts based on environment
+const TIMEOUTS = {
+  test: CI ? 60000 : 45000,        // Individual test timeout
+  expect: CI ? 10000 : 8000,       // Assertion timeout
+  navigation: CI ? 30000 : 20000,  // Page navigation timeout
+  action: CI ? 10000 : 8000,       // Action timeout (click, fill, etc.)
+};
+
+// Retry configuration
+const RETRIES = CI ? 2 : 1;
+const GLOBAL_TIMEOUT = CI ? 1800000 : 1200000; // 30min CI, 20min local
+
+/**
+ * Enhanced Playwright Test Configuration
  */
 export default defineConfig({
+  // === BASIC CONFIGURATION ===
   testDir: './tests/e2e',
+  outputDir: './test-results',
+  timeout: TIMEOUTS.test,
+  globalTimeout: GLOBAL_TIMEOUT,
+  expect: {
+    timeout: TIMEOUTS.expect,
+  },
   
-  /* Enhanced parallel execution */
+  // === EXECUTION CONFIGURATION ===
   fullyParallel: true,
+  forbidOnly: CI,
+  retries: RETRIES,
+  workers: WORKERS,
   
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: !!process.env.CI,
-  
-  /* Enhanced retry strategy */
-  retries: process.env.CI ? 3 : 1,
-  
-  /* Optimized workers for CI/local */
-  workers: process.env.CI ? 2 : 4,
-  
-  /* Enhanced reporting with more detail */
+  // === REPORTING ===
   reporter: [
+    // Console reporter for development
+    ['list', { printSteps: !CI }],
+    
+    // HTML report for detailed analysis
     ['html', { 
-      open: 'never', 
-      outputFolder: 'test-results/html-report'
+      outputFolder: './test-results/html-report',
+      open: CI ? 'never' : 'on-failure'
     }],
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['junit', { outputFile: 'test-results/results.xml' }],
-    ['list'],
-    ...(process.env.CI ? [['github']] : []),
+    
+    // JSON reporter for CI/CD integration
+    ['json', { 
+      outputFile: './test-results/test-results.json' 
+    }],
+    
+    // JUnit for CI systems that require it
+    ...(CI ? [['junit', { outputFile: './test-results/junit.xml' }] as any] : []),
+    
+    // GitHub Actions integration
+    ...(process.env.GITHUB_ACTIONS ? [['github'] as any] : []),
   ],
-  
-  /* Enhanced global settings */
+
+  // === GLOBAL SETUP AND TEARDOWN ===
+  globalSetup: './tests/utils/global-setup.ts',
+  globalTeardown: './tests/utils/global-teardown.ts',
+
+  // === TEST CONFIGURATION ===
   use: {
-    /* Base URL with fallback */
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8888',
+    // Base URL for tests
+    baseURL: BASE_URL,
     
-    /* Enhanced tracing */
-    trace: process.env.CI ? 'retain-on-failure' : 'on-first-retry',
+    // Action timeouts
+    actionTimeout: TIMEOUTS.action,
+    navigationTimeout: TIMEOUTS.navigation,
     
-    /* Enhanced screenshot settings */
-    screenshot: 'only-on-failure',
-    
-    /* Enhanced video settings */
-    video: 'retain-on-failure',
-    
-    /* Optimized timeouts */
-    actionTimeout: 15000,
-    navigationTimeout: 45000,
-    
-    /* Enhanced browser context */
+    // Browser configuration
+    headless: HEADLESS,
     viewport: { width: 1280, height: 720 },
     ignoreHTTPSErrors: true,
     
-    /* Locale and timezone */
-    locale: 'en-US',
-    timezoneId: 'America/New_York',
+    // Screenshots and videos
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    trace: 'retain-on-failure',
     
-    /* Enhanced permissions */
-    permissions: ['notifications'],
-    
-    /* Accept downloads */
-    acceptDownloads: true,
-    
-    /* Enhanced user agent */
-    userAgent: 'Arquiz-E2E-Tests/1.0',
-    
-    /* Enhanced browser launch options */
+    // Enhanced debugging
     launchOptions: {
+      slowMo: CI ? 0 : 100,
+      // Additional Chrome flags for testing
       args: [
-        '--no-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
         '--disable-web-security',
-        '--allow-running-insecure-content',
         '--disable-features=TranslateUI',
-        '--disable-extensions',
-        '--no-first-run',
-        '--disable-default-apps',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
+        '--disable-ipc-flooding-protection',
         '--disable-renderer-backgrounding',
-        '--disable-field-trial-config'
+        '--disable-backgrounding-occluded-windows',
+        '--disable-background-timer-throttling',
+        '--force-fieldtrials=WebRTC-H264WithOpenH264FFmpeg/Enabled/',
       ],
-      // Enhanced for debugging
-      ...(process.env.DEBUG ? {
-        headless: false,
-        devtools: true,
-        slowMo: 100
-      } : {})
-    }
+    },
+    
+    // Context options
+    contextOptions: {
+      // Permissions for WebRTC, notifications, etc.
+      permissions: ['camera', 'microphone', 'notifications'],
+      
+      // Geolocation for location-based features
+      geolocation: { latitude: 37.7749, longitude: -122.4194 },
+      
+      // Locale for internationalization testing
+      locale: 'en-US',
+      
+      // Color scheme testing
+      colorScheme: 'light',
+      
+      // Reduced motion for accessibility testing
+      reducedMotion: 'no-preference',
+      
+      // Extra HTTP headers
+      extraHTTPHeaders: {
+        'Accept-Language': 'en-US,en;q=0.9',
+        'X-Test-Environment': 'playwright',
+      },
+    },
   },
 
-  /* Enhanced project configurations */
+  // === PROJECT CONFIGURATIONS ===
   projects: [
-    // Desktop browsers
+    // === SETUP PROJECT ===
     {
-      name: 'Desktop Chrome',
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+      teardown: 'cleanup',
+    },
+    
+    // === CLEANUP PROJECT ===
+    {
+      name: 'cleanup',
+      testMatch: /.*\.teardown\.ts/,
+    },
+
+    // === DESKTOP BROWSERS ===
+    {
+      name: 'chromium-desktop',
       use: { 
         ...devices['Desktop Chrome'],
-        channel: 'chrome'
+        channel: 'chrome',
       },
+      dependencies: ['setup'],
+      testIgnore: [
+        '**/mobile-*.spec.ts',
+        '**/tablet-*.spec.ts',
+      ],
     },
-
+    
     {
-      name: 'Desktop Firefox',
+      name: 'firefox-desktop',
       use: { 
         ...devices['Desktop Firefox'],
-        launchOptions: {
-          firefoxUserPrefs: {
-            'media.navigator.streams.fake': true,
-            'media.navigator.permission.disabled': true,
-          }
-        }
       },
+      dependencies: ['setup'],
+      testIgnore: [
+        '**/mobile-*.spec.ts',
+        '**/tablet-*.spec.ts',
+        '**/webkit-*.spec.ts',
+      ],
     },
-
+    
     {
-      name: 'Desktop Safari',
+      name: 'webkit-desktop',
       use: { 
         ...devices['Desktop Safari'],
       },
+      dependencies: ['setup'],
+      testIgnore: [
+        '**/mobile-*.spec.ts',
+        '**/tablet-*.spec.ts',
+        '**/firefox-*.spec.ts',
+      ],
     },
 
+    // === MOBILE DEVICES ===
     {
-      name: 'Desktop Edge',
-      use: { 
-        ...devices['Desktop Edge'], 
-        channel: 'msedge' 
-      },
-    },
-
-    // Mobile browsers with enhanced settings
-    {
-      name: 'Mobile Chrome',
+      name: 'mobile-chrome',
       use: { 
         ...devices['Pixel 5'],
-        isMobile: true,
         hasTouch: true,
       },
+      dependencies: ['setup'],
+      testMatch: [
+        '**/mobile-*.spec.ts',
+        '**/responsive-*.spec.ts',
+        '**/authentication-*.spec.ts',
+        '**/quiz-*.spec.ts',
+      ],
     },
-
+    
     {
-      name: 'Mobile Safari',
+      name: 'mobile-safari',
       use: { 
         ...devices['iPhone 12'],
-        isMobile: true,
         hasTouch: true,
       },
+      dependencies: ['setup'],
+      testMatch: [
+        '**/mobile-*.spec.ts',
+        '**/responsive-*.spec.ts',
+        '**/authentication-*.spec.ts',
+      ],
     },
 
+    // === TABLET DEVICES ===
     {
-      name: 'Tablet iPad',
+      name: 'tablet-chrome',
       use: { 
         ...devices['iPad Pro'],
-        isMobile: true,
         hasTouch: true,
       },
+      dependencies: ['setup'],
+      testMatch: [
+        '**/tablet-*.spec.ts',
+        '**/responsive-*.spec.ts',
+        '**/quiz-*.spec.ts',
+      ],
     },
 
-    // Accessibility testing project
+    // === ACCESSIBILITY TESTING ===
     {
-      name: 'Accessibility Tests',
-      use: { 
-        ...devices['Desktop Chrome']
-      },
-      testMatch: '**/accessibility*.spec.ts',
-    },
-
-    // Performance testing project
-    {
-      name: 'Performance Tests',
+      name: 'accessibility',
       use: { 
         ...devices['Desktop Chrome'],
-        // Optimized for performance testing
-        video: 'off',
-        screenshot: 'off',
+        contextOptions: {
+          reducedMotion: 'reduce',
+          forcedColors: 'active',
+        },
       },
-      testMatch: '**/performance*.spec.ts',
+      dependencies: ['setup'],
+      testMatch: [
+        '**/accessibility-*.spec.ts',
+        '**/comprehensive-*.spec.ts',
+      ],
+      retries: 0, // Accessibility tests should be deterministic
     },
 
-    // API testing project
+    // === PERFORMANCE TESTING ===
     {
-      name: 'API Tests',
+      name: 'performance',
+      use: { 
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            '--disable-web-security',
+            '--disable-features=TranslateUI',
+            '--enable-automation',
+            '--no-first-run',
+            '--disable-default-apps',
+            '--disable-popup-blocking',
+            '--disable-background-timer-throttling',
+            '--disable-renderer-backgrounding',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-ipc-flooding-protection',
+          ],
+        },
+      },
+      dependencies: ['setup'],
+      testMatch: [
+        '**/performance-*.spec.ts',
+        '**/load-*.spec.ts',
+        '**/comprehensive-*.spec.ts',
+      ],
+      timeout: 120000, // Longer timeout for performance tests
+    },
+
+    // === SECURITY TESTING ===
+    {
+      name: 'security',
+      use: { 
+        ...devices['Desktop Chrome'],
+        contextOptions: {
+          // Security testing specific options
+          bypassCSP: false,
+        },
+      },
+      dependencies: ['setup'],
+      testMatch: [
+        '**/security-*.spec.ts',
+        '**/comprehensive-authentication-*.spec.ts',
+      ],
+    },
+
+    // === API TESTING ===
+    {
+      name: 'api',
       use: {
-        // API testing doesn't need browser context
-        baseURL: process.env.API_BASE_URL || 'http://localhost:3000',
+        baseURL: API_BASE_URL,
+        extraHTTPHeaders: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
       },
-      testMatch: '**/api*.spec.ts',
-    }
-  ],
-
-  /* Enhanced global setup and teardown */
-  globalSetup: require.resolve('./tests/global-setup'),
-  globalTeardown: require.resolve('./tests/global-teardown'),
-
-  /* Enhanced timeout settings */
-  timeout: 90000,
-  expect: {
-    timeout: 15000,
-    toHaveScreenshot: {
-      threshold: 0.2,
-      animations: 'disabled'
+      dependencies: ['setup'],
+      testMatch: [
+        '**/api-*.spec.ts',
+        '**/integration-*.spec.ts',
+      ],
     },
-    toMatchSnapshot: {
-      threshold: 0.3
-    }
-  },
 
-  /* Enhanced web server configuration */
-  webServer: [
+    // === VISUAL REGRESSION TESTING ===
     {
-      command: 'npm run dev',
-      port: 8888,
-      timeout: 120000,
-      reuseExistingServer: !process.env.CI,
-      env: {
-        NODE_ENV: 'test',
-        PORT: '8888'
+      name: 'visual',
+      use: { 
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 720 },
       },
+      dependencies: ['setup'],
+      testMatch: [
+        '**/visual-*.spec.ts',
+        '**/screenshot-*.spec.ts',
+      ],
+      retries: 0, // Visual tests should be deterministic
     },
-    // Optional: Backend server for API tests
-    ...(process.env.START_BACKEND ? [{
-      command: 'npm run start:test-backend',
-      port: 3000,
-      timeout: 60000,
-      reuseExistingServer: !process.env.CI,
-      env: {
-        NODE_ENV: 'test',
-        PORT: '3000'
+
+    // === CROSS-BROWSER COMPATIBILITY ===
+    {
+      name: 'compatibility',
+      use: { 
+        ...devices['Desktop Chrome'],
       },
-    }] : [])
+      dependencies: ['setup'],
+      testMatch: [
+        '**/cross-browser-*.spec.ts',
+        '**/compatibility-*.spec.ts',
+      ],
+    },
+
+    // === INTERNATIONALIZATION TESTING ===
+    {
+      name: 'i18n-pt',
+      use: { 
+        ...devices['Desktop Chrome'],
+        locale: 'pt-BR',
+        contextOptions: {
+          locale: 'pt-BR',
+          extraHTTPHeaders: {
+            'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+          },
+        },
+      },
+      dependencies: ['setup'],
+      testMatch: [
+        '**/i18n-*.spec.ts',
+        '**/localization-*.spec.ts',
+      ],
+    },
+
+    {
+      name: 'i18n-es',
+      use: { 
+        ...devices['Desktop Chrome'],
+        locale: 'es-ES',
+        contextOptions: {
+          locale: 'es-ES',
+          extraHTTPHeaders: {
+            'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+          },
+        },
+      },
+      dependencies: ['setup'],
+      testMatch: [
+        '**/i18n-*.spec.ts',
+        '**/localization-*.spec.ts',
+      ],
+    },
+
+    // === REAL-TIME TESTING ===
+    {
+      name: 'websocket',
+      use: { 
+        ...devices['Desktop Chrome'],
+        // Special settings for WebSocket testing
+        launchOptions: {
+          args: [
+            '--disable-web-security',
+            '--enable-experimental-web-platform-features',
+          ],
+        },
+      },
+      dependencies: ['setup'],
+      testMatch: [
+        '**/websocket-*.spec.ts',
+        '**/realtime-*.spec.ts',
+        '**/enhanced-websocket-*.spec.ts',
+      ],
+      timeout: 60000, // Longer timeout for real-time tests
+    },
+
+    // === LOAD TESTING ===
+    {
+      name: 'load',
+      use: { 
+        ...devices['Desktop Chrome'],
+      },
+      dependencies: ['setup'],
+      testMatch: [
+        '**/load-*.spec.ts',
+        '**/stress-*.spec.ts',
+      ],
+      workers: 1, // Sequential execution for load tests
+      timeout: 300000, // 5 minutes for load tests
+    },
   ],
 
-  /* Enhanced output directory */
-  outputDir: 'test-results/artifacts',
-
-  /* Enhanced metadata */
-  metadata: {
-    'test-suite': 'Arquiz E2E Tests',
-    'version': process.env.npm_package_version || '1.0.0',
-    'environment': process.env.NODE_ENV || 'test',
-    'ci': !!process.env.CI,
-    'timestamp': new Date().toISOString()
+  // === DEVELOPMENT SERVER ===
+  webServer: process.env.CI ? undefined : {
+    command: 'npm run dev',
+    url: BASE_URL,
+    reuseExistingServer: !CI,
+    timeout: 120000,
+    stdout: 'pipe',
+    stderr: 'pipe',
+    env: {
+      NODE_ENV: 'test',
+      DISABLE_TELEMETRY: '1',
+    },
   },
 
-  /* Enhanced grep patterns */
-  grep: process.env.TEST_GREP ? new RegExp(process.env.TEST_GREP) : undefined,
-  grepInvert: process.env.TEST_GREP_INVERT ? new RegExp(process.env.TEST_GREP_INVERT) : undefined,
+  // === METADATA ===
+  metadata: {
+    'test-framework': 'playwright',
+    'enhanced-config': 'true',
+    'version': '1.0.0',
+    'environment': CI ? 'ci' : 'local',
+    'base-url': BASE_URL,
+    'api-url': API_BASE_URL,
+    'workers': WORKERS.toString(),
+    'retries': RETRIES.toString(),
+    'headless': HEADLESS.toString(),
+  },
 
-  /* Enhanced test filtering */
+  // === ADVANCED CONFIGURATION ===
+  
+  // Test directory patterns
+  testMatch: [
+    '**/tests/e2e/**/*.spec.ts',
+    '**/tests/e2e/**/*.test.ts',
+  ],
+  
+  // Test ignore patterns
   testIgnore: [
     '**/node_modules/**',
-    '**/test-results/**',
+    '**/build/**',
+    '**/dist/**',
+    '**/.next/**',
     '**/coverage/**',
-    '**/.git/**'
-  ]
-}); 
+    '**/test-results/**',
+  ],
+
+  
+  // Grep patterns for selective test execution
+  // Use with: npx playwright test --grep "@smoke"
+  grep: process.env.PLAYWRIGHT_GREP ? new RegExp(process.env.PLAYWRIGHT_GREP) : undefined,
+  grepInvert: process.env.PLAYWRIGHT_GREP_INVERT ? new RegExp(process.env.PLAYWRIGHT_GREP_INVERT) : undefined,
+  
+  // Shard configuration for parallel CI execution
+  shard: process.env.PLAYWRIGHT_SHARD ? {
+    current: parseInt(process.env.PLAYWRIGHT_SHARD_CURRENT || '1'),
+    total: parseInt(process.env.PLAYWRIGHT_SHARD_TOTAL || '1'),
+  } : undefined,
+  
+  // Update snapshots in CI only when explicitly requested
+  updateSnapshots: process.env.UPDATE_SNAPSHOTS === 'true' ? 'all' : 'missing',
+} satisfies PlaywrightTestConfig);
+
+// === CONFIGURATION VALIDATION ===
+if (CI && !process.env.BASE_URL) {
+  console.warn('Warning: BASE_URL not set in CI environment');
+}
+
+if (WORKERS > 8) {
+  console.warn(`Warning: High worker count (${WORKERS}) may cause resource issues`);
+}
+
+// === EXPORT HELPERS ===
+export { BASE_URL, API_BASE_URL, TIMEOUTS, CI, HEADLESS };
+
+// === CONFIGURATION SUMMARY ===
+console.log(`
+🎭 Enhanced Playwright Configuration Loaded
+==========================================
+🌐 Base URL: ${BASE_URL}
+🔗 API URL: ${API_BASE_URL}
+👥 Workers: ${WORKERS}
+🔄 Retries: ${RETRIES}
+🎯 Environment: ${CI ? 'CI' : 'Local'}
+📱 Projects: ${CI ? '15+' : '12+'} (Desktop, Mobile, Tablet, A11y, Performance, Security)
+⏱️  Timeout: ${TIMEOUTS.test}ms
+📊 Reporting: HTML, JSON${CI ? ', JUnit, GitHub' : ''}
+🎨 Features: Visual Regression, Performance Monitoring, Security Testing, Accessibility Validation
+`); 

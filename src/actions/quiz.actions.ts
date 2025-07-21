@@ -102,15 +102,14 @@ export async function updateQuiz(quizId: string, quizData: Partial<Quiz>): Promi
   if (quizData.title !== undefined) backendUpdateDto.title = quizData.title;
   if (quizData.description !== undefined) backendUpdateDto.description = quizData.description;
   if (quizData.difficulty !== undefined) backendUpdateDto.difficulty = quizData.difficulty;
-  if (quizData.timeLimitMinutes !== undefined) backendUpdateDto.timeLimit = quizData.timeLimitMinutes;
-  if (quizData.shuffleQuestions !== undefined) backendUpdateDto.shuffleQuestions = quizData.shuffleQuestions;
+  if (quizData.timeLimit !== undefined) backendUpdateDto.timeLimit = quizData.timeLimit;
+  if (quizData.settings?.shuffleQuestions !== undefined) backendUpdateDto.shuffleQuestions = quizData.settings.shuffleQuestions;
   
-  if (quizData.showCorrectAnswers !== undefined) {
-    backendUpdateDto.showFeedback = quizData.showCorrectAnswers !== 'never';
+  if (quizData.settings?.showCorrectAnswers !== undefined) {
+    backendUpdateDto.showFeedback = quizData.settings.showCorrectAnswers;
   }
   
-  // Campos que o backend CreateQuizDto/UpdateQuizDto podem aceitar
-  if (quizData.transcriptionId !== undefined) backendUpdateDto.transcriptionId = quizData.transcriptionId;
+  // Note: transcriptionId is not part of the frontend Quiz interface
   // maxAttempts não está no tipo Quiz do frontend, se for necessário, adicionar ao tipo e aqui.
 
   // Mapeamento de questões. O backend UpdateQuizDto (via CreateQuizDto) espera Array de AddQuestionDto
@@ -151,7 +150,6 @@ export async function updateQuiz(quizId: string, quizData: Partial<Quiz>): Promi
     console.log(`[${operation}] Quiz atualizado com sucesso. ID: ${updatedQuiz.id}`);
     revalidatePath('/(app)/quizzes'); 
     revalidatePath(`/(app)/quizzes/${quizId}/editar`);
-    if (updatedQuiz.transcriptionId) revalidatePath(`/transcriptions/${updatedQuiz.transcriptionId}`); 
     return updatedQuiz;
   } catch (error) {
     console.error(`[${operation}] Falha ao atualizar quiz ${quizId}:`, error);

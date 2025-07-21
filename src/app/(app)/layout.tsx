@@ -1,6 +1,6 @@
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
-import { EnhancedWebSocketProvider } from '@/contexts/EnhancedWebSocketContext';
+import { UnifiedWebSocketProvider } from '@/contexts/UnifiedWebSocketContext';
 import React from 'react';
 
 export default function AppLayout({
@@ -10,7 +10,7 @@ export default function AppLayout({
 }) {
   console.log("[AppLayout] Renderizando AppLayout com Header e Sidebar.");
   return (
-    <EnhancedWebSocketProvider>
+    <UnifiedWebSocketProvider>
       <div className="flex min-h-screen flex-col bg-muted/40">
         <Header />
         <div className="flex flex-1 pt-16"> {/* Adiciona padding-top para compensar header fixo */}
@@ -20,6 +20,6 @@ export default function AppLayout({
           </main>
         </div>
       </div>
-    </EnhancedWebSocketProvider>
+    </UnifiedWebSocketProvider>
   );
 } 

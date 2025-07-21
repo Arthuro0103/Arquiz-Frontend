@@ -197,7 +197,7 @@ export const useLeaveSessionMutation = () => {
 // Custom hook for participation management
 export const useParticipationManagement = (sessionId: string) => {
   const sessionQuery = useParticipationSessionQuery(sessionId)
-  const resultsQuery = useSessionResultsQuery(sessionId, (sessionQuery.data as ParticipationSession)?.status === 'completed')
+  const resultsQuery = useSessionResultsQuery(sessionId, (sessionQuery.data as any)?.status === 'completed')
   const submitAnswerMutation = useSubmitAnswerMutation()
   const leaveMutation = useLeaveSessionMutation()
 

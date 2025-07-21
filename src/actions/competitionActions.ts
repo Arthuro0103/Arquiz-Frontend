@@ -42,7 +42,7 @@ interface CompetitionRoom {
   timeMode: 'per_question' | 'per_quiz';
   timePerQuestion?: number;
   timePerQuiz?: number;
-  showAnswersWhen: 'immediately' | 'end_of_quiz';
+  showAnswersWhen: 'immediately' | 'after_quiz';
   roomType: 'public' | 'private';
   accessCode: string;
   shareableLink?: string;
@@ -66,7 +66,7 @@ interface CreateRoomData {
   timeMode: 'per_question' | 'per_quiz';
   timePerQuestion?: number;
   timePerQuiz?: number;
-  showAnswersWhen: 'immediately' | 'end_of_quiz';
+  showAnswersWhen: 'immediately' | 'after_quiz';
   roomType: 'public' | 'private';
   maxParticipants: number;
 }
@@ -330,7 +330,7 @@ function transformBackendRoom(backendRoom: {
     timeMode: backendRoom.timeMode === 'PER_QUESTION' ? 'per_question' : 'per_quiz',
     timePerQuestion: backendRoom.timePerQuestion,
     timePerQuiz: backendRoom.timePerQuiz,
-    showAnswersWhen: backendRoom.showAnswersWhen === 'IMMEDIATELY' ? 'immediately' : 'end_of_quiz',
+    showAnswersWhen: backendRoom.showAnswersWhen === 'IMMEDIATELY' ? 'immediately' : 'after_quiz',
     roomType: backendRoom.roomType === 'PUBLIC' ? 'public' : 'private',
     accessCode: backendRoom.accessCode,
     shareableLink: backendRoom.roomType === 'PUBLIC' ? `/join/${backendRoom.id}` : undefined,
@@ -444,7 +444,7 @@ export async function createCompetitionRoom(
       timeMode: data.timeMode === 'per_question' ? 'per_question' : 'per_quiz',
       timePerQuestion: data.timePerQuestion,
       timePerQuiz: data.timePerQuiz,
-      showAnswersWhen: data.showAnswersWhen === 'immediately' ? 'immediately' : 'end_of_quiz',
+      showAnswersWhen: data.showAnswersWhen === 'immediately' ? 'immediately' : 'after_quiz',
       roomType: data.roomType === 'public' ? 'public' : 'private'
     };
 

@@ -33,7 +33,7 @@ interface CompetitionRoom {
   timeMode: 'per_question' | 'per_quiz';
   timePerQuestion?: number;
   timePerQuiz?: number;
-  showAnswersWhen: 'immediately' | 'end_of_quiz';
+  showAnswersWhen: 'immediately' | 'after_quiz';
   roomType: 'public' | 'private';
   accessCode: string;
   shareableLink?: string;
@@ -65,7 +65,7 @@ const formSchema = z.object({
   }),
   timePerQuestion: z.number().min(5, "Mínimo 5 segundos por pergunta.").optional(),
   timePerQuiz: z.number().min(30, "Mínimo 30 segundos para o quiz.").optional(),
-  showAnswersWhen: z.enum(['immediately', 'end_of_quiz'], {
+  showAnswersWhen: z.enum(['immediately', 'after_quiz'], {
     required_error: "Selecione quando mostrar as respostas corretas."
   }),
   roomType: z.enum(['public', 'private'], {
@@ -98,7 +98,7 @@ export function CompetitionRoomForm() {
       timeMode: 'per_question',
       timePerQuestion: 30,
       timePerQuiz: 300,
-      showAnswersWhen: 'end_of_quiz',
+      showAnswersWhen: 'after_quiz',
       roomType: 'public',
       maxParticipants: 20,
     },
@@ -393,8 +393,8 @@ export function CompetitionRoomForm() {
                         </label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="end_of_quiz" id="end_of_quiz" />
-                        <label htmlFor="end_of_quiz" className="text-sm font-medium">
+                        <RadioGroupItem value="after_quiz" id="after_quiz" />
+                        <label htmlFor="after_quiz" className="text-sm font-medium">
                           Ao final do quiz
                         </label>
                       </div>

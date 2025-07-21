@@ -273,7 +273,7 @@ export default function QuizzesPage() {
         description: quiz.description || '',
         questionCount: quiz.questions?.length || 0,
         difficulty: (quiz.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
-        timeLimit: quiz.timeLimitMinutes || 30,
+        timeLimit: quiz.timeLimit || 30,
         tags: [], // API quizzes don't have tags yet, set as empty array
         isPublic: true, // Default to public for now
         createdAt: new Date().toISOString(), // Default to current date since API doesn't have this

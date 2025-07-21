@@ -1,522 +1,471 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import { registerStoreResetter } from './utils/reset'
+import { devtools, subscribeWithSelector } from 'zustand/middleware'
+import type { 
+  Quiz, 
+  Question, 
+  QuestionOption,
+  Answer,
+  QuizResult,
+  QuizStatus,
+  QuizDifficulty,
+  QuestionType,
+  CreateQuizDto,
+  UpdateQuizDto,
+  QuizError,
+  QuizAnalytics
+} from '../../../../shared/types'
 
-// Types for Quiz Store
-export interface Question {
-  id: string
-  text: string
-  type: 'multiple_choice' | 'true_false' | 'short_answer'
-  options?: string[]
-  correctAnswer: string | number
-  points: number
-  timeLimit?: number
-  explanation?: string
-  category?: string
-  difficulty?: 'easy' | 'medium' | 'hard'
-  imageUrl?: string
-}
+// Re-export shared types for convenience
+export type { 
+  Quiz, 
+  Question, 
+  QuestionOption,
+  Answer,
+  QuizResult,
+  QuizStatus,
+  QuizDifficulty,
+  QuestionType,
+  CreateQuizDto,
+  UpdateQuizDto,
+  QuizError,
+  QuizAnalytics
+} from '../../../../shared/types'
 
-export interface Answer {
-  questionId: string
-  selectedAnswer: string | number | null
-  isCorrect: boolean
-  points: number
-  timeSpent: number
-  submittedAt: string
-  attempts?: number
-}
-
-export interface Quiz {
-  id: string
-  title: string
-  description?: string
-  questions: Question[]
-  totalQuestions: number
-  totalPoints: number
-  timeLimit?: number
-  status: 'draft' | 'active' | 'paused' | 'completed' | 'cancelled'
-  createdAt: string
-  settings: {
-    shuffleQuestions: boolean
-    shuffleOptions: boolean
-    allowReview: boolean
-    showCorrectAnswers: boolean
-    timePerQuestion?: number
-    passingScore?: number
-  }
-}
-
+// Quiz session state interface using shared types
 export interface QuizSession {
-  id: string
-  quizId: string
-  participantId: string
-  startedAt: string
-  completedAt?: string
-  currentQuestionIndex: number
-  answers: Answer[]
-  score: number
-  totalTimeSpent: number
-  status: 'in_progress' | 'completed' | 'paused' | 'abandoned'
-  isPaused: boolean
-  pausedAt?: string
-  resumedAt?: string
+  readonly quizId: string
+  readonly participantId: string
+  readonly startTime: Date
+  readonly currentQuestionIndex: number
+  readonly answers: Map<string, Answer>
+  readonly timeRemaining?: number
+  readonly isCompleted: boolean
+  readonly score?: number
 }
 
+// Store state interface using shared types
 export interface QuizState {
-  // Current quiz data
+  // Current quiz state
   currentQuiz: Quiz | null
-  currentSession: QuizSession | null
   currentQuestion: Question | null
   currentQuestionIndex: number
+  questions: Question[]
   
-  // Quiz progress
-  answers: Answer[]
-  score: number
-  totalTimeSpent: number
-  questionStartTime: number
-  
-  // Timer state
-  timeRemaining: number
-  isTimerActive: boolean
-  timerInterval: NodeJS.Timeout | null
+  // Session state
+  session: QuizSession | null
+  answers: Map<string, Answer>
+  timeRemaining: number | null
   
   // UI state
   isLoading: boolean
-  showExplanations: boolean
-  showResults: boolean
+  error: QuizError | null
   isSubmitting: boolean
   
-  // Quiz management
-  quizHistory: QuizSession[]
+  // Quiz list state
+  quizList: Quiz[]
+  quizListLoading: boolean
+  quizListError: string | null
+  
+  // Results state
+  results: QuizResult[]
+  currentResult: QuizResult | null
+  analytics: QuizAnalytics | null
   
   // Actions
   setCurrentQuiz: (quiz: Quiz | null) => void
-  startQuiz: (quizId: string, participantId: string) => void
-  pauseQuiz: () => void
-  resumeQuiz: () => void
-  completeQuiz: () => void
+  setQuestions: (questions: Question[]) => void
+  setCurrentQuestion: (question: Question | null, index: number) => void
+  startQuizSession: (quiz: Quiz, participantId: string) => void
+  submitAnswer: (questionId: string, answer: Answer) => void
+  completeQuiz: () => Promise<QuizResult | null>
   
-  // Question navigation
-  goToQuestion: (index: number) => void
+  // Navigation
   nextQuestion: () => void
   previousQuestion: () => void
+  goToQuestion: (index: number) => void
   
-  // Answer management
-  submitAnswer: (questionId: string, answer: string | number) => void
-  updateAnswer: (questionId: string, answer: string | number) => void
-  clearAnswer: (questionId: string) => void
+  // Timer
+  setTimeRemaining: (time: number | null) => void
+  decrementTime: () => void
   
-  // Timer management
-  startTimer: (duration: number) => void
-  stopTimer: () => void
-  resetTimer: () => void
-  updateTimeRemaining: (time: number) => void
+  // Error handling
+  setError: (error: QuizError | null) => void
+  clearError: () => void
   
-  // UI actions
+  // Loading states
   setLoading: (loading: boolean) => void
-  toggleExplanations: () => void
-  toggleResults: () => void
   setSubmitting: (submitting: boolean) => void
   
-  // Utility actions
+  // Quiz list actions
+  setQuizList: (quizzes: Quiz[]) => void
+  addQuiz: (quiz: Quiz) => void
+  updateQuiz: (quizId: string, updates: Partial<Quiz>) => void
+  removeQuiz: (quizId: string) => void
+  
+  // Results actions
+  setResults: (results: QuizResult[]) => void
+  setCurrentResult: (result: QuizResult | null) => void
+  setAnalytics: (analytics: QuizAnalytics | null) => void
+  
+  // Async actions
+  loadQuiz: (quizId: string) => Promise<void>
+  createQuiz: (quizData: CreateQuizDto) => Promise<Quiz>
+  updateQuizData: (quizId: string, updates: UpdateQuizDto) => Promise<void>
+  loadResults: (quizId?: string) => Promise<void>
+  
+  // Reset
   reset: () => void
-  clearHistory: () => void
+  resetSession: () => void
 }
 
 // Initial state
 const initialState = {
   currentQuiz: null,
-  currentSession: null,
   currentQuestion: null,
   currentQuestionIndex: 0,
-  answers: [],
-  score: 0,
-  totalTimeSpent: 0,
-  questionStartTime: 0,
-  timeRemaining: 0,
-  isTimerActive: false,
-  timerInterval: null,
+  questions: [],
+  session: null,
+  answers: new Map(),
+  timeRemaining: null,
   isLoading: false,
-  showExplanations: false,
-  showResults: false,
+  error: null,
   isSubmitting: false,
-  quizHistory: [],
+  quizList: [],
+  quizListLoading: false,
+  quizListError: null,
+  results: [],
+  currentResult: null,
+  analytics: null,
 }
 
-// Create the Quiz Store
+// Create store with shared types
 export const useQuizStore = create<QuizState>()(
-  persist(
-    (set, get) => ({
+  devtools(
+    subscribeWithSelector((set, get) => ({
       ...initialState,
 
-      // Quiz management
-      setCurrentQuiz: (quiz) => {
-        const state = get()
-        if (state.timerInterval) {
-          clearInterval(state.timerInterval)
+      // Synchronous actions
+      setCurrentQuiz: (quiz) => set({ 
+        currentQuiz: quiz,
+        questions: quiz?.questions || [],
+        currentQuestionIndex: 0,
+        currentQuestion: quiz?.questions?.[0] || null
+      }),
+      
+      setQuestions: (questions) => set({ 
+        questions,
+        currentQuestion: questions[0] || null,
+        currentQuestionIndex: 0
+      }),
+      
+      setCurrentQuestion: (question, index) => set({ 
+        currentQuestion: question,
+        currentQuestionIndex: index
+      }),
+      
+      startQuizSession: (quiz, participantId) => {
+        const session: QuizSession = {
+          quizId: quiz.id,
+          participantId,
+          startTime: new Date(),
+          currentQuestionIndex: 0,
+          answers: new Map(),
+          isCompleted: false,
         }
         
         set({ 
           currentQuiz: quiz,
-          currentQuestion: quiz?.questions[0] || null,
+          session,
+          questions: quiz.questions || [],
+          currentQuestion: quiz.questions?.[0] || null,
           currentQuestionIndex: 0,
-          timeRemaining: quiz?.timeLimit || 0,
-          isTimerActive: false,
+          answers: new Map(),
+                     timeRemaining: quiz.timeLimit ? quiz.timeLimit * 60 : null
         })
       },
-
-      startQuiz: (quizId, participantId) => {
-        const quiz = get().currentQuiz
-        if (!quiz) return
-
-        const session: QuizSession = {
-          id: `session-${Date.now()}`,
-          quizId,
-          participantId,
-          startedAt: new Date().toISOString(),
-          currentQuestionIndex: 0,
-          answers: [],
-          score: 0,
-          totalTimeSpent: 0,
-          status: 'in_progress',
-          isPaused: false,
-        }
-
-        set({
-          currentSession: session,
-          currentQuestionIndex: 0,
-          currentQuestion: quiz.questions[0],
-          questionStartTime: Date.now(),
-          answers: [],
-          score: 0,
-          totalTimeSpent: 0,
-        })
-
-        // Start timer if quiz has time limit
-        if (quiz.timeLimit) {
-          get().startTimer(quiz.timeLimit)
-        }
+      
+      submitAnswer: (questionId, answer) => {
+        const { answers, session } = get()
+        const newAnswers = new Map(answers)
+        newAnswers.set(questionId, answer)
+        
+        const updatedSession = session ? {
+          ...session,
+          answers: newAnswers
+        } : null
+        
+        set({ answers: newAnswers, session: updatedSession })
       },
-
-      pauseQuiz: () => {
-        const state = get()
-        if (state.timerInterval) {
-          clearInterval(state.timerInterval)
-        }
-
-        const session = state.currentSession
-        if (session) {
-          const updatedSession = {
-            ...session,
-            isPaused: true,
-            pausedAt: new Date().toISOString(),
-            status: 'paused' as const,
-          }
-          set({
-            currentSession: updatedSession,
-            isTimerActive: false,
-            timerInterval: null,
+      
+      nextQuestion: () => {
+        const { currentQuestionIndex, questions } = get()
+        if (currentQuestionIndex < questions.length - 1) {
+          const newIndex = currentQuestionIndex + 1
+          set({ 
+            currentQuestionIndex: newIndex,
+            currentQuestion: questions[newIndex]
           })
         }
       },
+      
+      previousQuestion: () => {
+        const { currentQuestionIndex, questions } = get()
+        if (currentQuestionIndex > 0) {
+          const newIndex = currentQuestionIndex - 1
+          set({ 
+            currentQuestionIndex: newIndex,
+            currentQuestion: questions[newIndex]
+          })
+        }
+      },
+      
+      goToQuestion: (index) => {
+        const { questions } = get()
+        if (index >= 0 && index < questions.length) {
+          set({ 
+            currentQuestionIndex: index,
+            currentQuestion: questions[index]
+          })
+        }
+      },
+      
+      setTimeRemaining: (time) => set({ timeRemaining: time }),
+      
+      decrementTime: () => {
+        const { timeRemaining } = get()
+        if (timeRemaining !== null && timeRemaining > 0) {
+          set({ timeRemaining: timeRemaining - 1 })
+        }
+      },
+      
+      setError: (error) => set({ error }),
+      clearError: () => set({ error: null }),
+      
+      setLoading: (loading) => set({ isLoading: loading }),
+      setSubmitting: (submitting) => set({ isSubmitting: submitting }),
+      
+      setQuizList: (quizList) => set({ quizList }),
+      
+      addQuiz: (quiz) => set((state) => ({
+        quizList: [...state.quizList, quiz]
+      })),
+      
+      updateQuiz: (quizId, updates) => set((state) => ({
+        quizList: state.quizList.map(quiz => 
+          quiz.id === quizId ? { ...quiz, ...updates } : quiz
+        ),
+        currentQuiz: state.currentQuiz?.id === quizId 
+          ? { ...state.currentQuiz, ...updates }
+          : state.currentQuiz
+      })),
+      
+      removeQuiz: (quizId) => set((state) => ({
+        quizList: state.quizList.filter(quiz => quiz.id !== quizId),
+        currentQuiz: state.currentQuiz?.id === quizId ? null : state.currentQuiz
+      })),
+      
+      setResults: (results) => set({ results }),
+      setCurrentResult: (result) => set({ currentResult: result }),
+      setAnalytics: (analytics) => set({ analytics }),
 
-      resumeQuiz: () => {
-        const state = get()
-        const session = state.currentSession
+      // Async actions
+      loadQuiz: async (quizId: string) => {
+        set({ isLoading: true, error: null })
         
-        if (session) {
-          const updatedSession = {
-            ...session,
-            isPaused: false,
-            resumedAt: new Date().toISOString(),
-            status: 'in_progress' as const,
+        try {
+          const response = await fetch(`/api/quizzes/${quizId}`)
+          
+          if (!response.ok) {
+            throw new Error(`Failed to load quiz: ${response.statusText}`)
           }
           
-          set({
-            currentSession: updatedSession,
-            questionStartTime: Date.now(),
+          const quiz: Quiz = await response.json()
+          
+          set({ 
+            currentQuiz: quiz,
+            questions: quiz.questions || [],
+            currentQuestion: quiz.questions?.[0] || null,
+            currentQuestionIndex: 0,
+            isLoading: false 
           })
-
-          // Resume timer if there's time remaining
-          if (state.timeRemaining > 0) {
-            get().startTimer(state.timeRemaining)
-          }
+        } catch (error) {
+          set({ 
+            error: {
+              code: 'LOAD_QUIZ_FAILED',
+              message: error instanceof Error ? error.message : 'Failed to load quiz'
+            },
+            isLoading: false 
+          })
         }
       },
 
-      completeQuiz: () => {
-        const state = get()
-        if (state.timerInterval) {
-          clearInterval(state.timerInterval)
+      createQuiz: async (quizData: CreateQuizDto): Promise<Quiz> => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const response = await fetch('/api/quizzes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(quizData),
+          })
+          
+          if (!response.ok) {
+            throw new Error(`Failed to create quiz: ${response.statusText}`)
+          }
+          
+          const quiz: Quiz = await response.json()
+          
+          set((state) => ({
+            quizList: [...state.quizList, quiz],
+            isLoading: false
+          }))
+          
+          return quiz
+        } catch (error) {
+          const quizError: QuizError = {
+            code: 'CREATE_QUIZ_FAILED',
+            message: error instanceof Error ? error.message : 'Failed to create quiz'
+          }
+          
+          set({ error: quizError, isLoading: false })
+          throw quizError
+        }
+      },
+
+      updateQuizData: async (quizId: string, updates: UpdateQuizDto) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const response = await fetch(`/api/quizzes/${quizId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates),
+          })
+          
+          if (!response.ok) {
+            throw new Error(`Failed to update quiz: ${response.statusText}`)
+          }
+          
+          const updatedQuiz: Quiz = await response.json()
+          
+          get().updateQuiz(quizId, updatedQuiz)
+          set({ isLoading: false })
+        } catch (error) {
+          set({ 
+            error: {
+              code: 'UPDATE_QUIZ_FAILED',
+              message: error instanceof Error ? error.message : 'Failed to update quiz'
+            },
+            isLoading: false 
+          })
+        }
+      },
+
+      loadResults: async (quizId?: string) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const url = quizId ? `/api/quizzes/${quizId}/results` : '/api/results'
+          const response = await fetch(url)
+          
+          if (!response.ok) {
+            throw new Error(`Failed to load results: ${response.statusText}`)
+          }
+          
+          const results: QuizResult[] = await response.json()
+          
+          set({ results, isLoading: false })
+        } catch (error) {
+          set({ 
+            error: {
+              code: 'LOAD_RESULTS_FAILED',
+              message: error instanceof Error ? error.message : 'Failed to load results'
+            },
+            isLoading: false 
+          })
+        }
+      },
+
+      completeQuiz: async (): Promise<QuizResult | null> => {
+        const { session, answers, currentQuiz } = get()
+        
+        if (!session || !currentQuiz) {
+          return null
         }
 
-        const session = state.currentSession
-        if (session) {
-          const completedSession = {
+        set({ isSubmitting: true, error: null })
+        
+        try {
+          const response = await fetch(`/api/quizzes/${session.quizId}/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              participantId: session.participantId,
+              answers: Array.from(answers.entries()),
+              completedAt: new Date(),
+            }),
+          })
+          
+          if (!response.ok) {
+            throw new Error(`Failed to submit quiz: ${response.statusText}`)
+          }
+          
+          const result: QuizResult = await response.json()
+          
+          const completedSession: QuizSession = {
             ...session,
-            completedAt: new Date().toISOString(),
-            status: 'completed' as const,
-            score: state.score,
-            totalTimeSpent: state.totalTimeSpent,
+            isCompleted: true,
+            score: result.score,
           }
-
-          // Add to history
-          const updatedHistory = [completedSession, ...state.quizHistory].slice(0, 20)
-
-          set({
-            currentSession: completedSession,
-            quizHistory: updatedHistory,
-            isTimerActive: false,
-            timerInterval: null,
-            showResults: true,
+          
+          set({ 
+            session: completedSession,
+            currentResult: result,
+            isSubmitting: false 
           })
+          
+          return result
+        } catch (error) {
+          set({ 
+            error: {
+              code: 'SUBMIT_QUIZ_FAILED',
+              message: error instanceof Error ? error.message : 'Failed to submit quiz'
+            },
+            isSubmitting: false 
+          })
+          return null
         }
       },
 
-      // Question navigation
-      goToQuestion: (index) => {
-        const quiz = get().currentQuiz
-        if (!quiz || index < 0 || index >= quiz.questions.length) return
-
-        // Record time spent on current question
-        const timeSpent = Date.now() - get().questionStartTime
-
-        set({
-          currentQuestionIndex: index,
-          currentQuestion: quiz.questions[index],
-          questionStartTime: Date.now(),
-          totalTimeSpent: get().totalTimeSpent + timeSpent,
-        })
-      },
-
-      nextQuestion: () => {
-        const state = get()
-        const nextIndex = state.currentQuestionIndex + 1
-        
-        if (state.currentQuiz && nextIndex < state.currentQuiz.questions.length) {
-          state.goToQuestion(nextIndex)
-        } else {
-          // Quiz completed
-          state.completeQuiz()
-        }
-      },
-
-      previousQuestion: () => {
-        const state = get()
-        const prevIndex = state.currentQuestionIndex - 1
-        
-        if (prevIndex >= 0) {
-          state.goToQuestion(prevIndex)
-        }
-      },
-
-      // Answer management
-      submitAnswer: (questionId, answer) => {
-        const state = get()
-        const question = state.currentQuiz?.questions.find(q => q.id === questionId)
-        if (!question) return
-
-        const timeSpent = Date.now() - state.questionStartTime
-        const isCorrect = answer === question.correctAnswer
-        const points = isCorrect ? question.points : 0
-
-        const answerRecord: Answer = {
-          questionId,
-          selectedAnswer: answer,
-          isCorrect,
-          points,
-          timeSpent,
-          submittedAt: new Date().toISOString(),
-          attempts: 1,
-        }
-
-        // Update or add answer
-        const existingAnswerIndex = state.answers.findIndex(a => a.questionId === questionId)
-        let updatedAnswers: Answer[]
-
-        if (existingAnswerIndex >= 0) {
-          updatedAnswers = [...state.answers]
-          updatedAnswers[existingAnswerIndex] = answerRecord
-        } else {
-          updatedAnswers = [...state.answers, answerRecord]
-        }
-
-        // Calculate new score
-        const newScore = updatedAnswers.reduce((total, ans) => total + ans.points, 0)
-
-        set({
-          answers: updatedAnswers,
-          score: newScore,
-        })
-
-        // Auto-advance to next question
-        setTimeout(() => {
-          get().nextQuestion()
-        }, 1000)
-      },
-
-      updateAnswer: (questionId, answer) => {
-        // This is for updating answers without submitting (draft mode)
-        const state = get()
-        const existingAnswerIndex = state.answers.findIndex(a => a.questionId === questionId)
-        
-        if (existingAnswerIndex >= 0) {
-          const updatedAnswers = [...state.answers]
-          updatedAnswers[existingAnswerIndex] = {
-            ...updatedAnswers[existingAnswerIndex],
-            selectedAnswer: answer,
-          }
-          set({ answers: updatedAnswers })
-        }
-      },
-
-      clearAnswer: (questionId) => {
-        set({
-          answers: get().answers.filter(a => a.questionId !== questionId)
-        })
-      },
-
-      // Timer management
-      startTimer: (duration) => {
-        const state = get()
-        if (state.timerInterval) {
-          clearInterval(state.timerInterval)
-        }
-
-        set({ 
-          timeRemaining: duration,
-          isTimerActive: true,
-        })
-
-        const interval = setInterval(() => {
-          const currentTime = get().timeRemaining
-          if (currentTime <= 0) {
-            get().completeQuiz()
-          } else {
-            set({ timeRemaining: currentTime - 1 })
-          }
-        }, 1000)
-
-        set({ timerInterval: interval })
-      },
-
-      stopTimer: () => {
-        const state = get()
-        if (state.timerInterval) {
-          clearInterval(state.timerInterval)
-        }
-        set({ 
-          isTimerActive: false,
-          timerInterval: null,
-        })
-      },
-
-      resetTimer: () => {
-        const state = get()
-        if (state.timerInterval) {
-          clearInterval(state.timerInterval)
-        }
-        set({
-          timeRemaining: state.currentQuiz?.timeLimit || 0,
-          isTimerActive: false,
-          timerInterval: null,
-        })
-      },
-
-      updateTimeRemaining: (time) => {
-        set({ timeRemaining: time })
-      },
-
-      // UI actions
-      setLoading: (loading) => {
-        set({ isLoading: loading })
-      },
-
-      toggleExplanations: () => {
-        set({ showExplanations: !get().showExplanations })
-      },
-
-      toggleResults: () => {
-        set({ showResults: !get().showResults })
-      },
-
-      setSubmitting: (submitting) => {
-        set({ isSubmitting: submitting })
-      },
-
-      // Utility actions
-      reset: () => {
-        const state = get()
-        if (state.timerInterval) {
-          clearInterval(state.timerInterval)
-        }
-        set(initialState)
-      },
-
-      clearHistory: () => {
-        set({ quizHistory: [] })
-      },
-    }),
-    {
-      name: 'arquiz-quiz-store',
-      partialize: (state) => ({
-        quizHistory: state.quizHistory,
-        showExplanations: state.showExplanations,
+      reset: () => set(initialState),
+      
+      resetSession: () => set({
+        session: null,
+        answers: new Map(),
+        timeRemaining: null,
+        currentResult: null,
       }),
-    }
+    })),
+    { name: 'quiz-store' }
   )
 )
 
-// Register reset function
-registerStoreResetter(() => {
-  const state = useQuizStore.getState()
-  if (state.timerInterval) {
-    clearInterval(state.timerInterval)
-  }
-  state.reset()
-})
-
-// Computed selectors
+// Selectors for computed values
 export const quizSelectors = {
-  // Get quiz progress percentage
-  getProgress: (state: QuizState) => {
-    if (!state.currentQuiz) return 0
-    return (state.currentQuestionIndex / state.currentQuiz.totalQuestions) * 100
+  getCurrentQuiz: (state: QuizState): Quiz | null => state.currentQuiz,
+  getCurrentQuestion: (state: QuizState): Question | null => state.currentQuestion,
+  getQuestions: (state: QuizState): Question[] => state.questions,
+  getAnswers: (state: QuizState): Map<string, Answer> => state.answers,
+  getSession: (state: QuizState): QuizSession | null => state.session,
+  getTimeRemaining: (state: QuizState): number | null => state.timeRemaining,
+  getProgress: (state: QuizState): number => {
+    const { currentQuestionIndex, questions } = state
+    return questions.length > 0 ? (currentQuestionIndex + 1) / questions.length : 0
   },
-
-  // Get answered questions count
-  getAnsweredCount: (state: QuizState) => state.answers.length,
-
-  // Get current question answer
-  getCurrentAnswer: (state: QuizState) => {
-    if (!state.currentQuestion) return null
-    return state.answers.find(a => a.questionId === state.currentQuestion!.id)
-  },
-
-  // Check if quiz is in progress
-  isQuizInProgress: (state: QuizState) => 
-    state.currentSession?.status === 'in_progress' && !state.currentSession.isPaused,
-
-  // Get quiz completion status
-  isQuizCompleted: (state: QuizState) => 
-    state.currentSession?.status === 'completed',
-
-  // Get time remaining formatted
-  getFormattedTimeRemaining: (state: QuizState) => {
-    const minutes = Math.floor(state.timeRemaining / 60)
-    const seconds = state.timeRemaining % 60
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-  },
-
-  // Get quiz statistics
-  getQuizStats: (state: QuizState) => ({
-    totalQuestions: state.currentQuiz?.totalQuestions || 0,
-    answeredQuestions: state.answers.length,
-    correctAnswers: state.answers.filter(a => a.isCorrect).length,
-    score: state.score,
-    totalPoints: state.currentQuiz?.totalPoints || 0,
-    timeSpent: state.totalTimeSpent,
-    progress: quizSelectors.getProgress(state),
-  }),
+  getAnsweredQuestions: (state: QuizState): number => state.answers.size,
+  isQuizCompleted: (state: QuizState): boolean => state.session?.isCompleted || false,
+  hasError: (state: QuizState): boolean => state.error !== null,
+  canGoNext: (state: QuizState): boolean => 
+    state.currentQuestionIndex < state.questions.length - 1,
+  canGoPrevious: (state: QuizState): boolean => state.currentQuestionIndex > 0,
 } 

@@ -1,248 +1,340 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, type ApiError } from '../api/client'
-import { queryKeys, cacheUtils } from '../queryClient'
-import { useNotificationStore } from '../stores'
+import type { 
+  Quiz, 
+  Question,
+  CreateQuizDto, 
+  UpdateQuizDto,
+  QuizSearchFilters,
+  QuizSearchResult,
+  QuizError,
+  QuizResult
+} from '../../../../shared/types'
 
-// Types for quiz operations
-interface Quiz {
-  id: string
-  title: string
-  description?: string
-  difficulty: 'easy' | 'medium' | 'hard'
-  timePerQuestion?: number
-  totalQuestions: number
-  status: 'draft' | 'published' | 'archived'
-  createdAt: string
-  updatedAt: string
-  createdBy: string
-  tags?: string[]
-  category?: string
-  isPublic: boolean
+// Re-export shared types for convenience
+export type { 
+  Quiz, 
+  Question,
+  CreateQuizDto, 
+  UpdateQuizDto,
+  QuizSearchFilters,
+  QuizSearchResult,
+  QuizError,
+  QuizResult
+} from '../../../../shared/types'
+
+interface UseQuizzesQueryOptions {
+  filters?: QuizSearchFilters
+  enabled?: boolean
 }
 
-interface CreateQuizData {
-  title: string
-  description?: string
-  difficulty: 'easy' | 'medium' | 'hard'
-  timePerQuestion?: number
-  tags?: string[]
-  category?: string
-  isPublic?: boolean
+interface UseQuizzesQueryResult {
+  quizzes: Quiz[]
+  isLoading: boolean
+  error: QuizError | null
+  refetch: () => void
 }
 
-interface QuizQuestion {
-  id: string
-  question: string
-  type: 'multiple_choice' | 'true_false'
-  options: string[]
-  correctAnswer: number
-  explanation?: string
-  timeLimit?: number
-  points: number
-}
+// Hook for fetching quizzes with optional filters
+export const useQuizzesQuery = (options: UseQuizzesQueryOptions = {}): UseQuizzesQueryResult => {
+  const { filters, enabled = true } = options
 
-// Quiz list query
-export const useQuizzesQuery = (filters?: any) => {
-  return useQuery({
-    queryKey: queryKeys.quizzes.list(filters),
-    queryFn: () => api.quizzes.list(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  })
-}
-
-// Single quiz query
-export const useQuizQuery = (quizId: string, enabled = true) => {
-  return useQuery({
-    queryKey: queryKeys.quizzes.detail(quizId),
-    queryFn: () => api.quizzes.get(quizId),
-    enabled: enabled && !!quizId,
-    staleTime: 3 * 60 * 1000, // 3 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  })
-}
-
-// Quiz questions query
-export const useQuizQuestionsQuery = (quizId: string, enabled = true) => {
-  return useQuery({
-    queryKey: queryKeys.quizzes.questions(quizId),
-    queryFn: () => api.quizzes.questions(quizId),
-    enabled: enabled && !!quizId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
-  })
-}
-
-// Create quiz mutation
-export const useCreateQuizMutation = () => {
-  const queryClient = useQueryClient()
-  const { showSuccess, showError } = useNotificationStore()
-
-  return useMutation({
-    mutationFn: (quizData: CreateQuizData) => api.quizzes.create(quizData),
-    onSuccess: (data: any) => {
-      // Invalidate quizzes list to show new quiz
-      cacheUtils.invalidateQuizzes()
+  const {
+    data: quizzesData,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['quizzes', filters],
+    queryFn: async (): Promise<QuizSearchResult> => {
+      const searchParams = new URLSearchParams()
       
-      // Add the new quiz to the cache
-      if (data?.id) {
-        queryClient.setQueryData(queryKeys.quizzes.detail(data.id), data)
-        showSuccess('Quiz created successfully', `Quiz "${data.title || 'New Quiz'}" has been created.`)
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            if (Array.isArray(value)) {
+              value.forEach(v => searchParams.append(key, v.toString()))
+            } else if (value instanceof Date) {
+              searchParams.append(key, value.toISOString())
+            } else {
+              searchParams.append(key, value.toString())
+            }
+          }
+        })
       }
-    },
-    onError: (error: ApiError) => {
-      showError('Failed to create quiz', error.message)
-    },
-  })
-}
 
-// Update quiz mutation
-export const useUpdateQuizMutation = () => {
-  const queryClient = useQueryClient()
-  const { showSuccess, showError } = useNotificationStore()
-
-  return useMutation({
-    mutationFn: ({ quizId, updates }: { quizId: string; updates: Partial<Quiz> }) =>
-      api.quizzes.update(quizId, updates),
-    onSuccess: (data: any, { quizId }) => {
-      // Update the specific quiz in cache
-      if (data) {
-        queryClient.setQueryData(queryKeys.quizzes.detail(quizId), data)
+      const response = await fetch(`/api/quizzes?${searchParams}`)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch quizzes: ${response.statusText}`)
       }
-      
-      // Invalidate quizzes list to reflect changes
-      cacheUtils.invalidateQuizzes()
-      
-      showSuccess('Quiz updated', 'Quiz has been updated successfully.')
+
+      return response.json()
     },
-    onError: (error: ApiError) => {
-      showError('Failed to update quiz', error.message)
-    },
+    enabled,
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: false,
   })
-}
-
-// Delete quiz mutation
-export const useDeleteQuizMutation = () => {
-  const queryClient = useQueryClient()
-  const { showSuccess, showError } = useNotificationStore()
-
-  return useMutation({
-    mutationFn: (quizId: string) => api.quizzes.delete(quizId),
-    onSuccess: (_, quizId) => {
-      // Remove quiz from cache
-      queryClient.removeQueries({ queryKey: queryKeys.quizzes.detail(quizId) })
-      queryClient.removeQueries({ queryKey: queryKeys.quizzes.questions(quizId) })
-      
-      // Invalidate quizzes list
-      cacheUtils.invalidateQuizzes()
-      
-      showSuccess('Quiz deleted', 'Quiz has been deleted successfully.')
-    },
-    onError: (error: ApiError) => {
-      showError('Failed to delete quiz', error.message)
-    },
-  })
-}
-
-// Add question to quiz mutation
-export const useAddQuestionToQuizMutation = () => {
-  const queryClient = useQueryClient()
-  const { showSuccess, showError } = useNotificationStore()
-
-  return useMutation({
-    mutationFn: ({ quizId, questionData }: { quizId: string; questionData: Omit<QuizQuestion, 'id'> }) =>
-      api.quizzes.addQuestion(quizId, questionData),
-    onSuccess: (data: any, { quizId }) => {
-      // Invalidate quiz questions to show new question
-      queryClient.invalidateQueries({ queryKey: queryKeys.quizzes.questions(quizId) })
-      
-      // Update quiz details (total questions count might have changed)
-      queryClient.invalidateQueries({ queryKey: queryKeys.quizzes.detail(quizId) })
-      
-      showSuccess('Question added', 'Question has been added to the quiz successfully.')
-    },
-    onError: (error: ApiError) => {
-      showError('Failed to add question', error.message)
-    },
-  })
-}
-
-// Remove question from quiz mutation
-export const useRemoveQuestionFromQuizMutation = () => {
-  const queryClient = useQueryClient()
-  const { showSuccess, showError } = useNotificationStore()
-
-  return useMutation({
-    mutationFn: ({ quizId, questionId }: { quizId: string; questionId: string }) =>
-      api.quizzes.removeQuestion(quizId, questionId),
-    onSuccess: (_, { quizId }) => {
-      // Invalidate quiz questions to remove the question
-      queryClient.invalidateQueries({ queryKey: queryKeys.quizzes.questions(quizId) })
-      
-      // Update quiz details (total questions count might have changed)
-      queryClient.invalidateQueries({ queryKey: queryKeys.quizzes.detail(quizId) })
-      
-      showSuccess('Question removed', 'Question has been removed from the quiz.')
-    },
-    onError: (error: ApiError) => {
-      showError('Failed to remove question', error.message)
-    },
-  })
-}
-
-// Prefetch quiz data
-export const usePrefetchQuiz = () => {
-  const queryClient = useQueryClient()
-
-  return (quizId: string) => {
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.quizzes.detail(quizId),
-      queryFn: () => api.quizzes.get(quizId),
-      staleTime: 3 * 60 * 1000,
-    })
-  }
-}
-
-// Custom hook for quiz management
-export const useQuizManagement = (quizId: string) => {
-  const quizQuery = useQuizQuery(quizId)
-  const questionsQuery = useQuizQuestionsQuery(quizId)
-  const updateMutation = useUpdateQuizMutation()
-  const deleteMutation = useDeleteQuizMutation()
-  const addQuestionMutation = useAddQuestionToQuizMutation()
-  const removeQuestionMutation = useRemoveQuestionFromQuizMutation()
 
   return {
-    // Data
-    quiz: quizQuery.data,
-    questions: questionsQuery.data,
-    
-    // Loading states
-    isLoadingQuiz: quizQuery.isLoading,
-    isLoadingQuestions: questionsQuery.isLoading,
-    isUpdating: updateMutation.isPending,
-    isDeleting: deleteMutation.isPending,
-    isAddingQuestion: addQuestionMutation.isPending,
-    isRemovingQuestion: removeQuestionMutation.isPending,
-    
-    // Error states
-    quizError: quizQuery.error,
-    questionsError: questionsQuery.error,
-    
-    // Actions
-    updateQuiz: (updates: Partial<Quiz>) => 
-      updateMutation.mutate({ quizId, updates }),
-    deleteQuiz: () => deleteMutation.mutate(quizId),
-    addQuestion: (questionData: Omit<QuizQuestion, 'id'>) =>
-      addQuestionMutation.mutate({ quizId, questionData }),
-    removeQuestion: (questionId: string) =>
-      removeQuestionMutation.mutate({ quizId, questionId }),
-    
-    // Refetch functions
-    refetchQuiz: quizQuery.refetch,
-    refetchQuestions: questionsQuery.refetch,
+    quizzes: quizzesData?.quizzes || [],
+    isLoading,
+    error: error as QuizError | null,
+    refetch
   }
 }
 
-// Export types
-export type { Quiz, CreateQuizData, QuizQuestion } 
+interface UseCreateQuizMutationResult {
+  createQuiz: (data: CreateQuizDto) => Promise<Quiz>
+  isCreating: boolean
+  createError: QuizError | null
+}
+
+// Hook for creating quizzes
+export const useCreateQuizMutation = (): UseCreateQuizMutationResult => {
+  const queryClient = useQueryClient()
+
+  const {
+    mutateAsync: createQuiz,
+    isPending: isCreating,
+    error: createError
+  } = useMutation({
+    mutationFn: async (data: CreateQuizDto): Promise<Quiz> => {
+      const response = await fetch('/api/quizzes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to create quiz: ${response.statusText}`)
+      }
+
+      return response.json()
+    },
+    onSuccess: () => {
+      // Invalidate and refetch quizzes queries
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] })
+    },
+  })
+
+  return {
+    createQuiz,
+    isCreating,
+    createError: createError as QuizError | null
+  }
+}
+
+interface UseUpdateQuizMutationResult {
+  updateQuiz: (quizId: string, data: UpdateQuizDto) => Promise<Quiz>
+  isUpdating: boolean
+  updateError: QuizError | null
+}
+
+// Hook for updating quizzes
+export const useUpdateQuizMutation = (): UseUpdateQuizMutationResult => {
+  const queryClient = useQueryClient()
+
+  const {
+    mutateAsync: updateQuiz,
+    isPending: isUpdating,
+    error: updateError
+  } = useMutation({
+    mutationFn: async ({ quizId, data }: { quizId: string; data: UpdateQuizDto }): Promise<Quiz> => {
+      const response = await fetch(`/api/quizzes/${quizId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to update quiz: ${response.statusText}`)
+      }
+
+      return response.json()
+    },
+    onSuccess: (updatedQuiz) => {
+      // Update the specific quiz in cache
+      queryClient.setQueryData(['quiz', updatedQuiz.id], updatedQuiz)
+      // Invalidate quizzes list
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] })
+    },
+  })
+
+  return {
+    updateQuiz: (quizId: string, data: UpdateQuizDto) => updateQuiz({ quizId, data }),
+    isUpdating,
+    updateError: updateError as QuizError | null
+  }
+}
+
+interface UseQuizQueryResult {
+  quiz: Quiz | null
+  isLoading: boolean
+  error: QuizError | null
+  refetch: () => void
+}
+
+// Hook for fetching a specific quiz
+export const useQuizQuery = (quizId: string | null): UseQuizQueryResult => {
+  const {
+    data: quiz,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['quiz', quizId],
+    queryFn: async (): Promise<Quiz> => {
+      if (!quizId) {
+        throw new Error('Quiz ID is required')
+      }
+
+      const response = await fetch(`/api/quizzes/${quizId}`)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch quiz: ${response.statusText}`)
+      }
+
+      return response.json()
+    },
+    enabled: !!quizId,
+    staleTime: 60000, // 1 minute
+  })
+
+  return {
+    quiz: quiz || null,
+    isLoading,
+    error: error as QuizError | null,
+    refetch
+  }
+}
+
+interface UseDeleteQuizMutationResult {
+  deleteQuiz: (quizId: string) => Promise<void>
+  isDeleting: boolean
+  deleteError: QuizError | null
+}
+
+// Hook for deleting quizzes
+export const useDeleteQuizMutation = (): UseDeleteQuizMutationResult => {
+  const queryClient = useQueryClient()
+
+  const {
+    mutateAsync: deleteQuiz,
+    isPending: isDeleting,
+    error: deleteError
+  } = useMutation({
+    mutationFn: async (quizId: string): Promise<void> => {
+      const response = await fetch(`/api/quizzes/${quizId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to delete quiz: ${response.statusText}`)
+      }
+    },
+    onSuccess: (_, quizId) => {
+      // Remove the specific quiz from cache
+      queryClient.removeQueries({ queryKey: ['quiz', quizId] })
+      // Invalidate quizzes list
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] })
+    },
+  })
+
+  return {
+    deleteQuiz,
+    isDeleting,
+    deleteError: deleteError as QuizError | null
+  }
+}
+
+interface UseQuizResultsQueryResult {
+  results: QuizResult[]
+  isLoading: boolean
+  error: QuizError | null
+  refetch: () => void
+}
+
+// Hook for fetching quiz results
+export const useQuizResultsQuery = (quizId: string | null): UseQuizResultsQueryResult => {
+  const {
+    data: results,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['quiz-results', quizId],
+    queryFn: async (): Promise<QuizResult[]> => {
+      if (!quizId) {
+        throw new Error('Quiz ID is required')
+      }
+
+      const response = await fetch(`/api/quizzes/${quizId}/results`)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch quiz results: ${response.statusText}`)
+      }
+
+      return response.json()
+    },
+    enabled: !!quizId,
+    staleTime: 30000, // 30 seconds
+  })
+
+  return {
+    results: results || [],
+    isLoading,
+    error: error as QuizError | null,
+    refetch
+  }
+}
+
+interface UseSubmitQuizMutationResult {
+  submitQuiz: (quizId: string, answers: any[]) => Promise<QuizResult>
+  isSubmitting: boolean
+  submitError: QuizError | null
+}
+
+// Hook for submitting quiz answers
+export const useSubmitQuizMutation = (): UseSubmitQuizMutationResult => {
+  const queryClient = useQueryClient()
+
+  const {
+    mutateAsync: submitQuiz,
+    isPending: isSubmitting,
+    error: submitError
+  } = useMutation({
+    mutationFn: async ({ quizId, answers }: { quizId: string; answers: any[] }): Promise<QuizResult> => {
+      const response = await fetch(`/api/quizzes/${quizId}/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answers }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to submit quiz: ${response.statusText}`)
+      }
+
+      return response.json()
+    },
+    onSuccess: (result) => {
+      // Invalidate quiz results to show the new submission
+      queryClient.invalidateQueries({ queryKey: ['quiz-results', result.quizId] })
+    },
+  })
+
+  return {
+    submitQuiz: (quizId: string, answers: any[]) => submitQuiz({ quizId, answers }),
+    isSubmitting,
+    submitError: submitError as QuizError | null
+  }
+} 

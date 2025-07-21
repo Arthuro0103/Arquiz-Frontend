@@ -1,60 +1,346 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, type ApiError } from '../api/client'
-import { queryKeys, cacheUtils } from '../queryClient'
-import { useNotificationStore } from '../stores'
+import type { 
+  Room, 
+  Participant, 
+  ParticipantRole,
+  CreateRoomDto,
+  UpdateRoomDto,
+  JoinRoomDto,
+  RoomSearchFilters,
+  RoomSearchResult,
+  JoinRoomResponse,
+  RoomError,
+  ConnectionQuality
+} from '../../../../shared/types'
+import { RoomStatus } from '../../../../shared/types'
 
-// Types for room operations
-interface Room {
-  id: string
-  name: string
-  code: string
-  accessCode: string
-  status: string
-  createdAt: string
-  maxParticipants: number
-  currentParticipants: number
-  quizId?: string
-  description?: string
+interface UseRoomsQueryOptions {
+  filters?: RoomSearchFilters
+  enabled?: boolean
 }
 
-interface CreateRoomData {
-  name: string
-  description?: string
-  maxParticipants?: number
-  quizId?: string
+interface UseRoomsQueryResult {
+  rooms: Room[]
+  isLoading: boolean
+  error: RoomError | null
+  refetch: () => void
 }
 
-interface JoinRoomData {
-  name: string
-  username?: string
-}
+// Hook for fetching rooms with optional filters
+export const useRoomsQuery = (options: UseRoomsQueryOptions = {}): UseRoomsQueryResult => {
+  const { filters, enabled = true } = options
 
-// Room list query
-export const useRoomsQuery = (filters?: any) => {
-  return useQuery({
-    queryKey: queryKeys.rooms.list(filters),
-    queryFn: () => api.rooms.list(filters),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+  const {
+    data: roomsData,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['rooms', filters],
+    queryFn: async (): Promise<RoomSearchResult> => {
+      const searchParams = new URLSearchParams()
+      
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            if (Array.isArray(value)) {
+              value.forEach(v => searchParams.append(key, v.toString()))
+            } else {
+              searchParams.append(key, value.toString())
+            }
+          }
+        })
+      }
+
+      const response = await fetch(`/api/rooms?${searchParams}`)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch rooms: ${response.statusText}`)
+      }
+
+      return response.json()
+    },
+    enabled,
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: false,
   })
+
+  return {
+    rooms: roomsData?.rooms || [],
+    isLoading,
+    error: error as RoomError | null,
+    refetch
+  }
 }
 
-// Single room query
-export const useRoomQuery = (roomId: string, enabled = true) => {
-  return useQuery({
-    queryKey: queryKeys.rooms.detail(roomId),
-    queryFn: () => api.rooms.get(roomId),
-    enabled: enabled && !!roomId,
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // 5 minutes
+interface UseCreateRoomMutationResult {
+  createRoom: (data: CreateRoomDto) => Promise<Room>
+  isCreating: boolean
+  createError: RoomError | null
+}
+
+// Hook for creating rooms
+export const useCreateRoomMutation = (): UseCreateRoomMutationResult => {
+  const queryClient = useQueryClient()
+
+  const {
+    mutateAsync: createRoom,
+    isPending: isCreating,
+    error: createError
+  } = useMutation({
+    mutationFn: async (data: CreateRoomDto): Promise<Room> => {
+      const response = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to create room: ${response.statusText}`)
+      }
+
+      return response.json()
+    },
+    onSuccess: () => {
+      // Invalidate and refetch rooms queries
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    },
   })
+
+  return {
+    createRoom,
+    isCreating,
+    createError: createError as RoomError | null
+  }
+}
+
+interface UseJoinRoomMutationResult {
+  joinRoom: (data: JoinRoomDto) => Promise<JoinRoomResponse>
+  isJoining: boolean
+  joinError: RoomError | null
+}
+
+// Hook for joining rooms
+export const useJoinRoomMutation = (): UseJoinRoomMutationResult => {
+  const queryClient = useQueryClient()
+
+  const {
+    mutateAsync: joinRoom,
+    isPending: isJoining,
+    error: joinError
+  } = useMutation({
+    mutationFn: async (data: JoinRoomDto): Promise<JoinRoomResponse> => {
+      const response = await fetch('/api/rooms/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to join room: ${response.statusText}`)
+      }
+
+      return response.json()
+    },
+    onSuccess: (response) => {
+      // Update the specific room in cache if join was successful
+      if (response.success && response.data) {
+        queryClient.setQueryData(['room', response.data.room.id], response.data.room)
+      }
+      // Invalidate rooms list to reflect updated participant count
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    },
+  })
+
+  return {
+    joinRoom,
+    isJoining,
+    joinError: joinError as RoomError | null
+  }
+}
+
+interface UseRoomQueryResult {
+  room: Room | null
+  isLoading: boolean
+  error: RoomError | null
+  refetch: () => void
+}
+
+// Hook for fetching a specific room
+export const useRoomQuery = (roomId: string | null): UseRoomQueryResult => {
+  const {
+    data: room,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['room', roomId],
+    queryFn: async (): Promise<Room> => {
+      if (!roomId) {
+        throw new Error('Room ID is required')
+      }
+
+      const response = await fetch(`/api/rooms/${roomId}`)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch room: ${response.statusText}`)
+      }
+
+      return response.json()
+    },
+    enabled: !!roomId,
+    staleTime: 60000, // 1 minute
+  })
+
+  return {
+    room: room || null,
+    isLoading,
+    error: error as RoomError | null,
+    refetch
+  }
+}
+
+interface UseDeleteRoomMutationResult {
+  deleteRoom: (roomId: string) => Promise<void>
+  isDeleting: boolean
+  deleteError: RoomError | null
+}
+
+// Hook for deleting rooms
+export const useDeleteRoomMutation = (): UseDeleteRoomMutationResult => {
+  const queryClient = useQueryClient()
+
+  const {
+    mutateAsync: deleteRoom,
+    isPending: isDeleting,
+    error: deleteError
+  } = useMutation({
+    mutationFn: async (roomId: string): Promise<void> => {
+      const response = await fetch(`/api/rooms/${roomId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to delete room: ${response.statusText}`)
+      }
+    },
+    onSuccess: (_, roomId) => {
+      // Remove the specific room from cache
+      queryClient.removeQueries({ queryKey: ['room', roomId] })
+      // Invalidate rooms list
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    },
+  })
+
+  return {
+    deleteRoom,
+    isDeleting,
+    deleteError: deleteError as RoomError | null
+  }
+}
+
+// Hook for leaving a room
+interface UseLeaveRoomMutationResult {
+  leaveRoom: (roomId: string) => Promise<void>
+  isLeaving: boolean
+  leaveError: RoomError | null
+}
+
+export const useLeaveRoomMutation = (): UseLeaveRoomMutationResult => {
+  const queryClient = useQueryClient()
+
+  const {
+    mutateAsync: leaveRoom,
+    isPending: isLeaving,
+    error: leaveError
+  } = useMutation({
+    mutationFn: async (roomId: string): Promise<void> => {
+      const response = await fetch(`/api/rooms/${roomId}/leave`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to leave room: ${response.statusText}`)
+      }
+    },
+    onSuccess: () => {
+      // Invalidate rooms queries to reflect updated participant counts
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    },
+  })
+
+  return {
+    leaveRoom,
+    isLeaving,
+    leaveError: leaveError as RoomError | null
+  }
+}
+
+// Hook for updating rooms
+interface UseUpdateRoomMutationResult {
+  updateRoom: (roomId: string, data: UpdateRoomDto) => Promise<Room>
+  isUpdating: boolean
+  updateError: RoomError | null
+}
+
+export const useUpdateRoomMutation = (): UseUpdateRoomMutationResult => {
+  const queryClient = useQueryClient()
+
+  const {
+    mutateAsync: updateRoom,
+    isPending: isUpdating,
+    error: updateError
+  } = useMutation({
+    mutationFn: async ({ roomId, data }: { roomId: string; data: UpdateRoomDto }): Promise<Room> => {
+      const response = await fetch(`/api/rooms/${roomId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to update room: ${response.statusText}`)
+      }
+
+      return response.json()
+    },
+    onSuccess: (updatedRoom) => {
+      // Update the specific room in cache
+      queryClient.setQueryData(['room', updatedRoom.id], updatedRoom)
+      // Invalidate rooms list
+      queryClient.invalidateQueries({ queryKey: ['rooms'] })
+    },
+  })
+
+  return {
+    updateRoom: (roomId: string, data: UpdateRoomDto) => updateRoom({ roomId, data }),
+    isUpdating,
+    updateError: updateError as RoomError | null
+  }
 }
 
 // Room participants query
 export const useRoomParticipantsQuery = (roomId: string, enabled = true) => {
   return useQuery({
-    queryKey: queryKeys.rooms.participants(roomId),
-    queryFn: () => api.rooms.participants(roomId),
+    queryKey: ['room', 'participants', roomId],
+    queryFn: async (): Promise<Participant[]> => {
+      const response = await fetch(`/api/rooms/${roomId}/participants`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch participants: ${response.statusText}`)
+      }
+      return response.json()
+    },
     enabled: enabled && !!roomId,
     staleTime: 30 * 1000, // 30 seconds (participants change frequently)
     gcTime: 2 * 60 * 1000, // 2 minutes
@@ -62,137 +348,32 @@ export const useRoomParticipantsQuery = (roomId: string, enabled = true) => {
   })
 }
 
-// Create room mutation
-export const useCreateRoomMutation = () => {
-  const queryClient = useQueryClient()
-  const { showSuccess, showError } = useNotificationStore()
-
-  return useMutation({
-    mutationFn: (roomData: CreateRoomData) => api.rooms.create(roomData),
-    onSuccess: (data: any) => {
-      // Invalidate rooms list to show new room
-      cacheUtils.invalidateRooms()
-      
-      // Add the new room to the cache
-      if (data?.id) {
-        queryClient.setQueryData(queryKeys.rooms.detail(data.id), data)
-        showSuccess('Room created successfully', `Room "${data.name || 'New Room'}" has been created.`)
-      }
-    },
-    onError: (error: ApiError) => {
-      showError('Failed to create room', error.message)
-    },
-  })
-}
-
-// Update room mutation
-export const useUpdateRoomMutation = () => {
-  const queryClient = useQueryClient()
-  const { showSuccess, showError } = useNotificationStore()
-
-  return useMutation({
-    mutationFn: ({ roomId, updates }: { roomId: string; updates: Partial<Room> }) =>
-      api.rooms.update(roomId, updates),
-    onSuccess: (data: any, { roomId }) => {
-      // Update the specific room in cache
-      if (data) {
-        queryClient.setQueryData(queryKeys.rooms.detail(roomId), data)
-      }
-      
-      // Invalidate rooms list to reflect changes
-      cacheUtils.invalidateRooms()
-      
-      showSuccess('Room updated', 'Room settings have been updated successfully.')
-    },
-    onError: (error: ApiError) => {
-      showError('Failed to update room', error.message)
-    },
-  })
-}
-
-// Delete room mutation
-export const useDeleteRoomMutation = () => {
-  const queryClient = useQueryClient()
-  const { showSuccess, showError } = useNotificationStore()
-
-  return useMutation({
-    mutationFn: (roomId: string) => api.rooms.delete(roomId),
-    onSuccess: (_, roomId) => {
-      // Remove room from cache
-      queryClient.removeQueries({ queryKey: queryKeys.rooms.detail(roomId) })
-      queryClient.removeQueries({ queryKey: queryKeys.rooms.participants(roomId) })
-      
-      // Invalidate rooms list
-      cacheUtils.invalidateRooms()
-      
-      showSuccess('Room deleted', 'Room has been deleted successfully.')
-    },
-    onError: (error: ApiError) => {
-      showError('Failed to delete room', error.message)
-    },
-  })
-}
-
-// Join room mutation
-export const useJoinRoomMutation = () => {
-  const queryClient = useQueryClient()
-  const { showSuccess, showError } = useNotificationStore()
-
-  return useMutation({
-    mutationFn: ({ code, userData }: { code: string; userData: JoinRoomData }) =>
-      api.rooms.join(code, userData),
-    onSuccess: (data: any) => {
-      // Update room data in cache
-      if (data?.roomId) {
-        cacheUtils.invalidateRoom(data.roomId)
-      }
-      
-      showSuccess('Joined room successfully', `Welcome to the room!`)
-    },
-    onError: (error: ApiError) => {
-      showError('Failed to join room', error.message)
-    },
-  })
-}
-
-// Leave room mutation
-export const useLeaveroomMutation = () => {
-  const queryClient = useQueryClient()
-  const { showSuccess, showError } = useNotificationStore()
-
-  return useMutation({
-    mutationFn: (roomId: string) => api.rooms.leave(roomId),
-    onSuccess: (_, roomId) => {
-      // Invalidate room data
-      cacheUtils.invalidateRoom(roomId)
-      
-      showSuccess('Left room', 'You have left the room successfully.')
-    },
-    onError: (error: ApiError) => {
-      showError('Failed to leave room', error.message)
-    },
-  })
-}
-
 // Kick participant mutation
 export const useKickParticipantMutation = () => {
   const queryClient = useQueryClient()
-  const { showSuccess, showError } = useNotificationStore()
 
   return useMutation({
-    mutationFn: ({ roomId, participantId, reason }: { 
+    mutationFn: async ({ roomId, participantId, reason }: { 
       roomId: string; 
       participantId: string; 
       reason?: string 
-    }) => api.rooms.kickParticipant(roomId, participantId, reason),
+    }) => {
+      const response = await fetch(`/api/rooms/${roomId}/participants/${participantId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Failed to remove participant: ${response.statusText}`)
+      }
+    },
     onSuccess: (_, { roomId }) => {
       // Invalidate participants list to reflect the change
-      queryClient.invalidateQueries({ queryKey: queryKeys.rooms.participants(roomId) })
-      
-      showSuccess('Participant removed', 'Participant has been removed from the room.')
-    },
-    onError: (error: ApiError) => {
-      showError('Failed to remove participant', error.message)
+      queryClient.invalidateQueries({ queryKey: ['room', 'participants', roomId] })
     },
   })
 }
@@ -203,8 +384,14 @@ export const usePrefetchRoom = () => {
 
   return (roomId: string) => {
     queryClient.prefetchQuery({
-      queryKey: queryKeys.rooms.detail(roomId),
-      queryFn: () => api.rooms.get(roomId),
+      queryKey: ['room', roomId],
+      queryFn: async (): Promise<Room> => {
+        const response = await fetch(`/api/rooms/${roomId}`)
+        if (!response.ok) {
+          throw new Error(`Failed to prefetch room: ${response.statusText}`)
+        }
+        return response.json()
+      },
       staleTime: 1 * 60 * 1000,
     })
   }
@@ -216,36 +403,29 @@ export const useRoomManagement = (roomId: string) => {
   const participantsQuery = useRoomParticipantsQuery(roomId)
   const updateMutation = useUpdateRoomMutation()
   const deleteMutation = useDeleteRoomMutation()
-  const kickMutation = useKickParticipantMutation()
 
   return {
     // Data
-    room: roomQuery.data,
+    room: roomQuery.room,
     participants: participantsQuery.data,
     
     // Loading states
     isLoadingRoom: roomQuery.isLoading,
     isLoadingParticipants: participantsQuery.isLoading,
-    isUpdating: updateMutation.isPending,
-    isDeleting: deleteMutation.isPending,
-    isKicking: kickMutation.isPending,
+    isUpdating: updateMutation.isUpdating,
+    isDeleting: deleteMutation.isDeleting,
     
     // Error states
     roomError: roomQuery.error,
     participantsError: participantsQuery.error,
     
     // Actions
-    updateRoom: (updates: Partial<Room>) => 
-      updateMutation.mutate({ roomId, updates }),
-    deleteRoom: () => deleteMutation.mutate(roomId),
-    kickParticipant: (participantId: string, reason?: string) =>
-      kickMutation.mutate({ roomId, participantId, reason }),
+    updateRoom: (data: UpdateRoomDto) => 
+      updateMutation.updateRoom(roomId, data),
+    deleteRoom: () => deleteMutation.deleteRoom(roomId),
     
     // Refetch functions
     refetchRoom: roomQuery.refetch,
     refetchParticipants: participantsQuery.refetch,
   }
-}
-
-// Export types
-export type { Room, CreateRoomData, JoinRoomData } 
+} 

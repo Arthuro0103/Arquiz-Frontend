@@ -1,478 +1,372 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { useEnhancedWebSocket } from '@/hooks/useEnhancedWebSocket';
-import { ArQuizWebSocket } from '@/types/websocket.types';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  ReactNode,
+} from 'react';
+import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
-// Enhanced WebSocket Context Interface
+// Enhanced interfaces for missing payload/response types
+interface JoinRoomPayload {
+  roomId: string;
+  accessCode?: string;
+  displayName?: string;
+  role?: string;
+}
+
+interface JoinRoomResponse {
+  success: boolean;
+  room?: RoomWebSocketData;
+  participant?: ParticipantWebSocketData;
+  error?: string;
+}
+
+interface RoomWebSocketData {
+  id: string;
+  name: string;
+  code: string;
+  status: string;
+  participantCount: number;
+  maxParticipants: number;
+  createdAt: string;
+  settings: {
+    allowLateJoin: boolean;
+    showLeaderboard: boolean;
+    allowReconnection: boolean;
+    maxReconnectionAttempts: number;
+    autoStartDelay: number;
+    questionTimeLimit: number;
+    showCorrectAnswers: boolean;
+    allowAnswerChange: boolean;
+    shuffleQuestions: boolean;
+    shuffleOptions: boolean;
+  };
+}
+
+interface ParticipantWebSocketData {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  score: number;
+  currentQuestionIndex: number;
+  lastActivity: string;
+  connectionId: string;
+  isHost: boolean;
+  permissions: string[];
+  joinedAt: string;
+}
+
+interface QuestionData {
+  id: string;
+  text: string;
+  type: string;
+  options: Array<{
+    id: string;
+    text: string;
+  }>;
+  timeLimit: number;
+  points: number;
+}
+
+interface AnswerData {
+  questionId: string;
+  selectedOption: string;
+  timeSpent: number;
+}
+
+interface LeaderboardEntry {
+  participantId: string;
+  name: string;
+  score: number;
+  rank: number;
+  correctAnswers: number;
+  totalAnswers: number;
+  averageTime: number;
+}
+
+interface ConnectionStatus {
+  connected: boolean;
+  reconnecting: boolean;
+  error: string | null;
+  latency: number;
+}
+
 interface EnhancedWebSocketContextType {
   // Connection state
+  socket: Socket | null;
   isConnected: boolean;
-  isConnecting: boolean;
-  connectionQuality: ArQuizWebSocket.ConnectionMetrics['connectionQuality'];
-  lastError: ArQuizWebSocket.WebSocketError | null;
+  connectionStatus: ConnectionStatus;
   
   // Room state
-  currentRoom: string | null;
-  currentRole: string | null;
-  participants: ArQuizWebSocket.ParticipantInfo[];
-  roomData: ArQuizWebSocket.RoomInfo | null;
+  currentRoom: RoomWebSocketData | null;
+  participants: ParticipantWebSocketData[];
+  currentQuestion: QuestionData | null;
+  leaderboard: LeaderboardEntry[];
   
-  // Quiz state
-  currentQuiz: ArQuizWebSocket.QuizInfo | null;
-  currentQuestion: ArQuizWebSocket.QuestionInfo | null;
-  quizState: ArQuizWebSocket.QuizState | null;
+  // Actions
+  joinRoom: (payload: JoinRoomPayload) => Promise<JoinRoomResponse>;
+  leaveRoom: () => void;
+  submitAnswer: (answer: AnswerData) => void;
+  sendMessage: (message: string) => void;
   
-  // Connection management
-  connect: () => Promise<void>;
-  disconnect: () => void;
-  reconnect: () => Promise<void>;
-  
-  // Room management
-  joinRoom: (data: ArQuizWebSocket.JoinRoomPayload) => Promise<ArQuizWebSocket.JoinRoomResponse>;
-  leaveRoom: (data: ArQuizWebSocket.LeaveRoomPayload) => Promise<ArQuizWebSocket.LeaveRoomResponse>;
-  createRoom: (data: ArQuizWebSocket.CreateRoomPayload) => Promise<ArQuizWebSocket.CreateRoomResponse>;
-  
-  // Quiz control
-  startQuiz: (data: ArQuizWebSocket.StartQuizPayload) => Promise<ArQuizWebSocket.StartQuizResponse>;
-  pauseQuiz: (data: ArQuizWebSocket.PauseQuizPayload) => Promise<ArQuizWebSocket.PauseQuizResponse>;
-  resumeQuiz: (data: ArQuizWebSocket.ResumeQuizPayload) => Promise<ArQuizWebSocket.ResumeQuizResponse>;
-  endQuiz: (data: ArQuizWebSocket.EndQuizPayload) => Promise<ArQuizWebSocket.EndQuizResponse>;
-  nextQuestion: (data: ArQuizWebSocket.NextQuestionPayload) => Promise<ArQuizWebSocket.NextQuestionResponse>;
-  submitAnswer: (data: ArQuizWebSocket.SubmitAnswerPayload) => Promise<ArQuizWebSocket.SubmitAnswerResponse>;
-  
-  // Participant management
-  kickParticipant: (data: ArQuizWebSocket.KickParticipantPayload) => Promise<ArQuizWebSocket.KickParticipantResponse>;
-  promoteParticipant: (data: ArQuizWebSocket.PromoteParticipantPayload) => Promise<ArQuizWebSocket.PromoteParticipantResponse>;
-  updateParticipantStatus: (data: ArQuizWebSocket.UpdateParticipantStatusPayload) => void;
-  
-  // Event management
-  addEventListener: (event: string, handler: Function) => () => void;
-  emit: (event: string, ...args: any[]) => Promise<any>;
-  
-  // Diagnostics
-  getDiagnostics: () => ArQuizWebSocket.DiagnosticInfo;
-  getMetrics: () => ArQuizWebSocket.ConnectionMetrics;
-  
-  // Legacy compatibility
-  connectionAttempts: number;
-  socket: any;
+  // Event handlers
+  onParticipantJoined: (callback: (participant: ParticipantWebSocketData) => void) => void;
+  onParticipantLeft: (callback: (participantId: string) => void) => void;
+  onQuestionStarted: (callback: (question: QuestionData) => void) => void;
+  onAnswerReceived: (callback: (answer: AnswerData) => void) => void;
+  onLeaderboardUpdated: (callback: (leaderboard: LeaderboardEntry[]) => void) => void;
 }
 
 const EnhancedWebSocketContext = createContext<EnhancedWebSocketContextType | null>(null);
 
 interface EnhancedWebSocketProviderProps {
-  children: React.ReactNode;
-  config?: Partial<ArQuizWebSocket.ConnectionConfig>;
-  enableAutoReconnect?: boolean;
-  enableNotifications?: boolean;
+  children: ReactNode;
+  url?: string;
 }
 
-export function EnhancedWebSocketProvider({ 
-  children, 
-  config,
-  enableAutoReconnect = true,
-  enableNotifications = true
-}: EnhancedWebSocketProviderProps) {
-  const websocket = useEnhancedWebSocket(config);
+export const EnhancedWebSocketProvider: React.FC<EnhancedWebSocketProviderProps> = ({
+  children,
+  url = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:7777',
+}) => {
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
+    connected: false,
+    reconnecting: false,
+    error: null,
+    latency: 0,
+  });
   
-  // Enhanced state management
-  const [currentRole, setCurrentRole] = useState<string | null>(null);
-  const [roomData, setRoomData] = useState<ArQuizWebSocket.RoomInfo | null>(null);
-  const [currentQuiz, setCurrentQuiz] = useState<ArQuizWebSocket.QuizInfo | null>(null);
-  const [currentQuestion, setCurrentQuestion] = useState<ArQuizWebSocket.QuestionInfo | null>(null);
-  const [quizState, setQuizState] = useState<ArQuizWebSocket.QuizState | null>(null);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  // Room state
+  const [currentRoom, setCurrentRoom] = useState<RoomWebSocketData | null>(null);
+  const [participants, setParticipants] = useState<ParticipantWebSocketData[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState<QuestionData | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  
+  // Event handlers refs
+  const eventHandlers = useRef<{
+    participantJoined: ((participant: ParticipantWebSocketData) => void)[];
+    participantLeft: ((participantId: string) => void)[];
+    questionStarted: ((question: QuestionData) => void)[];
+    answerReceived: ((answer: AnswerData) => void)[];
+    leaderboardUpdated: ((leaderboard: LeaderboardEntry[]) => void)[];
+  }>({
+    participantJoined: [],
+    participantLeft: [],
+    questionStarted: [],
+    answerReceived: [],
+    leaderboardUpdated: [],
+  });
 
-  // Enhanced room management with type safety
-  const joinRoom = useCallback(async (data: ArQuizWebSocket.JoinRoomPayload): Promise<ArQuizWebSocket.JoinRoomResponse> => {
-    try {
-      const response = await websocket.joinRoom(data);
-      if (response.success && response.room) {
-        setRoomData(response.room);
-        setCurrentRole(data.role || 'student');
-        
-        if (enableNotifications) {
-          toast.success(`Entrou na sala: ${response.room.name}`);
-        }
-      }
-      return response;
-    } catch (error) {
-      if (enableNotifications) {
-        toast.error('Erro ao entrar na sala');
-      }
-      throw error;
-    }
-  }, [websocket, enableNotifications]);
-
-  const leaveRoom = useCallback(async (data: ArQuizWebSocket.LeaveRoomPayload): Promise<ArQuizWebSocket.LeaveRoomResponse> => {
-    try {
-      const response = await websocket.leaveRoom(data);
-      if (response.success) {
-        setRoomData(null);
-        setCurrentRole(null);
-        setCurrentQuiz(null);
-        setCurrentQuestion(null);
-        setQuizState(null);
-        
-        if (enableNotifications) {
-          toast.info('Saiu da sala');
-        }
-      }
-      return response;
-    } catch (error) {
-      if (enableNotifications) {
-        toast.error('Erro ao sair da sala');
-      }
-      throw error;
-    }
-  }, [websocket, enableNotifications]);
-
-  const createRoom = useCallback(async (data: ArQuizWebSocket.CreateRoomPayload): Promise<ArQuizWebSocket.CreateRoomResponse> => {
-    try {
-      const response = await websocket.emit('create_room', data);
-      if (response.success && response.room) {
-        setRoomData(response.room);
-        setCurrentRole('teacher');
-        
-        if (enableNotifications) {
-          toast.success(`Sala criada: ${response.room.name}`);
-        }
-      }
-      return response;
-    } catch (error) {
-      if (enableNotifications) {
-        toast.error('Erro ao criar sala');
-      }
-      throw error;
-    }
-  }, [websocket, enableNotifications]);
-
-  // Enhanced quiz control
-  const startQuiz = useCallback(async (data: ArQuizWebSocket.StartQuizPayload): Promise<ArQuizWebSocket.StartQuizResponse> => {
-    try {
-      const response = await websocket.startQuiz(data);
-      if (response.success && response.quiz) {
-        setCurrentQuiz(response.quiz);
-        setCurrentQuestion(response.firstQuestion || null);
-        setQuizState({
-          status: 'active',
-          currentQuestionIndex: 0,
-          isPaused: false,
-          startedAt: new Date().toISOString()
-        });
-        
-        if (enableNotifications) {
-          toast.success('Quiz iniciado!');
-        }
-      }
-      return response;
-    } catch (error) {
-      if (enableNotifications) {
-        toast.error('Erro ao iniciar quiz');
-      }
-      throw error;
-    }
-  }, [websocket, enableNotifications]);
-
-  const pauseQuiz = useCallback(async (data: ArQuizWebSocket.PauseQuizPayload): Promise<ArQuizWebSocket.PauseQuizResponse> => {
-    try {
-      const response = await websocket.emit('pause_quiz', data);
-      if (response.success) {
-        setQuizState(prev => prev ? { ...prev, isPaused: true, pausedAt: new Date().toISOString() } : null);
-        
-        if (enableNotifications) {
-          toast.info('Quiz pausado');
-        }
-      }
-      return response;
-    } catch (error) {
-      if (enableNotifications) {
-        toast.error('Erro ao pausar quiz');
-      }
-      throw error;
-    }
-  }, [websocket, enableNotifications]);
-
-  const resumeQuiz = useCallback(async (data: ArQuizWebSocket.ResumeQuizPayload): Promise<ArQuizWebSocket.ResumeQuizResponse> => {
-    try {
-      const response = await websocket.emit('resume_quiz', data);
-      if (response.success) {
-        setQuizState(prev => prev ? { ...prev, isPaused: false, pausedAt: undefined } : null);
-        setCurrentQuestion(response.currentQuestion || null);
-        
-        if (enableNotifications) {
-          toast.success('Quiz retomado');
-        }
-      }
-      return response;
-    } catch (error) {
-      if (enableNotifications) {
-        toast.error('Erro ao retomar quiz');
-      }
-      throw error;
-    }
-  }, [websocket, enableNotifications]);
-
-  const endQuiz = useCallback(async (data: ArQuizWebSocket.EndQuizPayload): Promise<ArQuizWebSocket.EndQuizResponse> => {
-    try {
-      const response = await websocket.emit('end_quiz', data);
-      if (response.success) {
-        setQuizState(prev => prev ? { ...prev, status: 'completed' } : null);
-        
-        if (enableNotifications) {
-          toast.success('Quiz finalizado!');
-        }
-      }
-      return response;
-    } catch (error) {
-      if (enableNotifications) {
-        toast.error('Erro ao finalizar quiz');
-      }
-      throw error;
-    }
-  }, [websocket, enableNotifications]);
-
-  const nextQuestion = useCallback(async (data: ArQuizWebSocket.NextQuestionPayload): Promise<ArQuizWebSocket.NextQuestionResponse> => {
-    try {
-      const response = await websocket.emit('next_question', data);
-      if (response.success && response.question) {
-        setCurrentQuestion(response.question);
-        setQuizState(prev => prev ? { ...prev, currentQuestionIndex: response.questionIndex || 0 } : null);
-      }
-      return response;
-    } catch (error) {
-      if (enableNotifications) {
-        toast.error('Erro ao avançar questão');
-      }
-      throw error;
-    }
-  }, [websocket, enableNotifications]);
-
-  const submitAnswer = useCallback(async (data: ArQuizWebSocket.SubmitAnswerPayload): Promise<ArQuizWebSocket.SubmitAnswerResponse> => {
-    try {
-      const response = await websocket.submitAnswer(data);
-      if (response.success && enableNotifications) {
-        if (response.isCorrect) {
-          toast.success(`Resposta correta! +${response.score} pontos`);
-        } else {
-          toast.error('Resposta incorreta');
-        }
-      }
-      return response;
-    } catch (error) {
-      if (enableNotifications) {
-        toast.error('Erro ao enviar resposta');
-      }
-      throw error;
-    }
-  }, [websocket, enableNotifications]);
-
-  // Participant management
-  const kickParticipant = useCallback(async (data: ArQuizWebSocket.KickParticipantPayload): Promise<ArQuizWebSocket.KickParticipantResponse> => {
-    try {
-      const response = await websocket.emit('kick_participant', data);
-      if (response.success && enableNotifications) {
-        toast.success('Participante removido');
-      }
-      return response;
-    } catch (error) {
-      if (enableNotifications) {
-        toast.error('Erro ao remover participante');
-      }
-      throw error;
-    }
-  }, [websocket, enableNotifications]);
-
-  const promoteParticipant = useCallback(async (data: ArQuizWebSocket.PromoteParticipantPayload): Promise<ArQuizWebSocket.PromoteParticipantResponse> => {
-    try {
-      const response = await websocket.emit('promote_participant', data);
-      if (response.success && enableNotifications) {
-        toast.success('Participante promovido');
-      }
-      return response;
-    } catch (error) {
-      if (enableNotifications) {
-        toast.error('Erro ao promover participante');
-      }
-      throw error;
-    }
-  }, [websocket, enableNotifications]);
-
-  const updateParticipantStatus = useCallback((data: ArQuizWebSocket.UpdateParticipantStatusPayload) => {
-    websocket.emit('update_participant_status', data).catch(error => {
-      console.error('Failed to update participant status:', error);
+  // Initialize socket connection
+  useEffect(() => {
+    console.log('[EnhancedWebSocket] Initializing connection to:', url);
+    
+    const newSocket = io(url, {
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      transports: ['websocket', 'polling'],
     });
-  }, [websocket]);
 
-  // Enhanced event handling with automatic cleanup
-  useEffect(() => {
-    const cleanupFunctions: (() => void)[] = [];
+    // Connection event handlers
+    newSocket.on('connect', () => {
+      console.log('[EnhancedWebSocket] Connected with ID:', newSocket.id);
+      setConnectionStatus(prev => ({
+        ...prev,
+        connected: true,
+        reconnecting: false,
+        error: null,
+      }));
+      toast.success('Conectado ao servidor');
+    });
 
-    // Room events
-    cleanupFunctions.push(
-      websocket.addEventListener('room_joined', (data: any) => {
-        setRoomData(data.room);
-        setCurrentRole(data.isTeacher ? 'teacher' : 'student');
-      })
-    );
+    newSocket.on('disconnect', (reason) => {
+      console.log('[EnhancedWebSocket] Disconnected:', reason);
+      setConnectionStatus(prev => ({
+        ...prev,
+        connected: false,
+        reconnecting: reason === 'io server disconnect' ? false : true,
+      }));
+      toast.error('Conexão perdida');
+    });
 
-    cleanupFunctions.push(
-      websocket.addEventListener('room_left', () => {
-        setRoomData(null);
-        setCurrentRole(null);
-        setCurrentQuiz(null);
-        setCurrentQuestion(null);
-        setQuizState(null);
-      })
-    );
+    newSocket.on('reconnect', (attemptNumber) => {
+      console.log('[EnhancedWebSocket] Reconnected after', attemptNumber, 'attempts');
+      setConnectionStatus(prev => ({
+        ...prev,
+        connected: true,
+        reconnecting: false,
+        error: null,
+      }));
+      toast.success('Reconectado ao servidor');
+    });
 
-    cleanupFunctions.push(
-      websocket.addEventListener('room_updated', (data: any) => {
-        setRoomData(prev => prev ? { ...prev, ...data.changes } : null);
-      })
-    );
+    newSocket.on('reconnect_error', (error) => {
+      console.error('[EnhancedWebSocket] Reconnection failed:', error);
+      setConnectionStatus(prev => ({
+        ...prev,
+        error: 'Falha na reconexão',
+      }));
+    });
 
-    // Quiz events
-    cleanupFunctions.push(
-      websocket.addEventListener('quiz_started', (data: any) => {
-        setCurrentQuiz(data.quiz);
-        setQuizState({
-          status: 'active',
-          currentQuestionIndex: 0,
-          isPaused: false,
-          startedAt: data.timestamp
-        });
-      })
-    );
+    newSocket.on('connect_error', (error) => {
+      console.error('[EnhancedWebSocket] Connection error:', error);
+      setConnectionStatus(prev => ({
+        ...prev,
+        connected: false,
+        error: error.message,
+      }));
+      toast.error('Erro de conexão');
+    });
 
-    cleanupFunctions.push(
-      websocket.addEventListener('quiz_paused', (data: any) => {
-        setQuizState(prev => prev ? { ...prev, isPaused: true, pausedAt: data.timestamp } : null);
-      })
-    );
+    // Room event handlers
+    newSocket.on('room_joined', (data: { room: RoomWebSocketData; participant: ParticipantWebSocketData; participants: ParticipantWebSocketData[] }) => {
+      console.log('[EnhancedWebSocket] Room joined:', data);
+      setCurrentRoom(data.room);
+      setParticipants(data.participants || []);
+    });
 
-    cleanupFunctions.push(
-      websocket.addEventListener('quiz_resumed', (data: any) => {
-        setQuizState(prev => prev ? { ...prev, isPaused: false, pausedAt: undefined } : null);
-      })
-    );
+    newSocket.on('participant_joined', (participant: ParticipantWebSocketData) => {
+      console.log('[EnhancedWebSocket] Participant joined:', participant);
+      setParticipants(prev => [...prev, participant]);
+      eventHandlers.current.participantJoined.forEach(handler => handler(participant));
+    });
 
-    cleanupFunctions.push(
-      websocket.addEventListener('quiz_ended', (data: any) => {
-        setQuizState(prev => prev ? { ...prev, status: 'completed' } : null);
-      })
-    );
+    newSocket.on('participant_left', (data: { participantId: string }) => {
+      console.log('[EnhancedWebSocket] Participant left:', data.participantId);
+      setParticipants(prev => prev.filter(p => p.id !== data.participantId));
+      eventHandlers.current.participantLeft.forEach(handler => handler(data.participantId));
+    });
 
-    cleanupFunctions.push(
-      websocket.addEventListener('question_changed', (data: any) => {
-        setCurrentQuestion(data.question);
-        setQuizState(prev => prev ? { ...prev, currentQuestionIndex: data.questionIndex } : null);
-      })
-    );
+    newSocket.on('question_started', (question: QuestionData) => {
+      console.log('[EnhancedWebSocket] Question started:', question);
+      setCurrentQuestion(question);
+      eventHandlers.current.questionStarted.forEach(handler => handler(question));
+    });
 
-    // System events
-    cleanupFunctions.push(
-      websocket.addEventListener('connect', () => {
-        setConnectionAttempts(prev => prev + 1);
-      })
-    );
+    newSocket.on('answer_received', (answer: AnswerData) => {
+      console.log('[EnhancedWebSocket] Answer received:', answer);
+      eventHandlers.current.answerReceived.forEach(handler => handler(answer));
+    });
 
-    cleanupFunctions.push(
-      websocket.addEventListener('disconnect', () => {
-        if (enableNotifications) {
-          toast.warning('Conexão perdida');
-        }
-      })
-    );
+    newSocket.on('leaderboard_updated', (newLeaderboard: LeaderboardEntry[]) => {
+      console.log('[EnhancedWebSocket] Leaderboard updated:', newLeaderboard);
+      setLeaderboard(newLeaderboard);
+      eventHandlers.current.leaderboardUpdated.forEach(handler => handler(newLeaderboard));
+    });
 
-    cleanupFunctions.push(
-      websocket.addEventListener('reconnect', () => {
-        if (enableNotifications) {
-          toast.success('Reconectado!');
-        }
-      })
-    );
+    setSocket(newSocket);
 
-    // Cleanup on unmount
     return () => {
-      cleanupFunctions.forEach(cleanup => cleanup());
+      console.log('[EnhancedWebSocket] Cleaning up connection');
+      newSocket.disconnect();
     };
-  }, [websocket, enableNotifications]);
+  }, [url]);
 
-  // Auto-reconnect logic
-  useEffect(() => {
-    if (enableAutoReconnect && !websocket.isConnected && !websocket.isConnecting && websocket.lastError) {
-      const retryable = websocket.lastError.retryable;
-      if (retryable && connectionAttempts < 5) {
-        const delay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000);
-        setTimeout(() => {
-          websocket.connect().catch(console.error);
-        }, delay);
+  // Join room function
+  const joinRoom = useCallback(async (payload: JoinRoomPayload): Promise<JoinRoomResponse> => {
+    return new Promise((resolve) => {
+      if (!socket) {
+        resolve({ success: false, error: 'Socket not connected' });
+        return;
       }
-    }
-  }, [websocket.isConnected, websocket.isConnecting, websocket.lastError, enableAutoReconnect, connectionAttempts, websocket]);
 
-  // Reconnect method
-  const reconnect = useCallback(async () => {
-    websocket.disconnect();
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Brief delay
-    return websocket.connect();
-  }, [websocket]);
+      console.log('[EnhancedWebSocket] Joining room with payload:', payload);
+      
+      const timeout = setTimeout(() => {
+        resolve({ success: false, error: 'Request timeout' });
+      }, 10000);
+
+      socket.emit('join_room', payload, (response: JoinRoomResponse) => {
+        clearTimeout(timeout);
+        console.log('[EnhancedWebSocket] Join room response:', response);
+        resolve(response);
+      });
+    });
+  }, [socket]);
+
+  // Leave room function
+  const leaveRoom = useCallback(() => {
+    if (!socket || !currentRoom) return;
+    
+    console.log('[EnhancedWebSocket] Leaving room:', currentRoom.id);
+    socket.emit('leave_room', { roomId: currentRoom.id });
+    setCurrentRoom(null);
+    setParticipants([]);
+    setCurrentQuestion(null);
+    setLeaderboard([]);
+  }, [socket, currentRoom]);
+
+  // Submit answer function
+  const submitAnswer = useCallback((answer: AnswerData) => {
+    if (!socket || !currentRoom) return;
+    
+    console.log('[EnhancedWebSocket] Submitting answer:', answer);
+    socket.emit('submit_answer', {
+      roomId: currentRoom.id,
+      ...answer,
+    });
+  }, [socket, currentRoom]);
+
+  // Send message function
+  const sendMessage = useCallback((message: string) => {
+    if (!socket || !currentRoom) return;
+    
+    console.log('[EnhancedWebSocket] Sending message:', message);
+    socket.emit('send_message', {
+      roomId: currentRoom.id,
+      message,
+    });
+  }, [socket, currentRoom]);
+
+  // Event handler registration functions
+  const onParticipantJoined = useCallback((callback: (participant: ParticipantWebSocketData) => void) => {
+    eventHandlers.current.participantJoined.push(callback);
+  }, []);
+
+  const onParticipantLeft = useCallback((callback: (participantId: string) => void) => {
+    eventHandlers.current.participantLeft.push(callback);
+  }, []);
+
+  const onQuestionStarted = useCallback((callback: (question: QuestionData) => void) => {
+    eventHandlers.current.questionStarted.push(callback);
+  }, []);
+
+  const onAnswerReceived = useCallback((callback: (answer: AnswerData) => void) => {
+    eventHandlers.current.answerReceived.push(callback);
+  }, []);
+
+  const onLeaderboardUpdated = useCallback((callback: (leaderboard: LeaderboardEntry[]) => void) => {
+    eventHandlers.current.leaderboardUpdated.push(callback);
+  }, []);
 
   const contextValue: EnhancedWebSocketContextType = {
-    // Connection state
-    isConnected: websocket.isConnected,
-    isConnecting: websocket.isConnecting,
-    connectionQuality: websocket.connectionQuality,
-    lastError: websocket.lastError,
-    
-    // Room state
-    currentRoom: websocket.currentRoom,
-    currentRole,
-    participants: websocket.participants,
-    roomData,
-    
-    // Quiz state
-    currentQuiz,
+    socket,
+    isConnected: connectionStatus.connected,
+    connectionStatus,
+    currentRoom,
+    participants,
     currentQuestion,
-    quizState,
-    
-    // Connection management
-    connect: websocket.connect,
-    disconnect: websocket.disconnect,
-    reconnect,
-    
-    // Room management
+    leaderboard,
     joinRoom,
     leaveRoom,
-    createRoom,
-    
-    // Quiz control
-    startQuiz,
-    pauseQuiz,
-    resumeQuiz,
-    endQuiz,
-    nextQuestion,
     submitAnswer,
-    
-    // Participant management
-    kickParticipant,
-    promoteParticipant,
-    updateParticipantStatus,
-    
-    // Event management
-    addEventListener: websocket.addEventListener,
-    emit: websocket.emit,
-    
-    // Diagnostics
-    getDiagnostics: websocket.getDiagnostics,
-    getMetrics: websocket.getMetrics,
-    
-    // Legacy compatibility
-    connectionAttempts,
-    socket: websocket.socket,
+    sendMessage,
+    onParticipantJoined,
+    onParticipantLeft,
+    onQuestionStarted,
+    onAnswerReceived,
+    onLeaderboardUpdated,
   };
 
   return (
@@ -480,23 +374,14 @@ export function EnhancedWebSocketProvider({
       {children}
     </EnhancedWebSocketContext.Provider>
   );
-}
+};
 
-// Enhanced hook with error handling
-export function useEnhancedWebSocketContext(): EnhancedWebSocketContextType {
+export const useEnhancedWebSocket = (): EnhancedWebSocketContextType => {
   const context = useContext(EnhancedWebSocketContext);
-  
   if (!context) {
-    throw new Error(
-      'useEnhancedWebSocketContext must be used within an EnhancedWebSocketProvider. ' +
-      'Please wrap your component with <EnhancedWebSocketProvider>.'
-    );
+    throw new Error('useEnhancedWebSocket must be used within an EnhancedWebSocketProvider');
   }
-  
   return context;
-}
+};
 
-// Legacy compatibility hook
-export function useWebSocket() {
-  return useEnhancedWebSocketContext();
-} 
+export default EnhancedWebSocketContext; 

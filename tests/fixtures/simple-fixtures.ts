@@ -1,4 +1,5 @@
 import { test as base, expect, Page } from '@playwright/test';
+import { AuthHelper } from './auth-helper';
 
 // Define fixture types
 type SimpleFixtures = {
@@ -11,20 +12,18 @@ type SimpleFixtures = {
 export const test = base.extend<SimpleFixtures>({
   // Simple page setup without authentication
   simplePage: async ({ page }, use) => {
-    // Basic page setup with shorter timeouts
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 10000 });
+    // Use AuthHelper for reliable page setup with immediate fallback
+    const authHelper = new AuthHelper(page);
+    await authHelper.navigateWithAuth('/');
     await use(page);
   },
 
   // Mock authenticated state without actual login
   mockAuthenticatedPage: async ({ page }, use) => {
-    // Skip actual authentication, just go to protected pages
-    try {
-      await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 8000 });
-    } catch {
-      // If protected page fails, just use home page
-      await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 8000 });
-    }
+    // Use AuthHelper for reliable authenticated page setup
+    const authHelper = new AuthHelper(page);
+    // Try dashboard first, fallback to home if needed
+    await authHelper.navigateWithAuth('/dashboard');
     await use(page);
   },
 

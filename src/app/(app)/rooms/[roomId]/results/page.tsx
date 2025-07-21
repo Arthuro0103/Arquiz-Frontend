@@ -47,7 +47,7 @@ interface CompetitionResult {
     timeMode: 'per_question' | 'per_quiz';
     timePerQuestion?: number;
     timePerQuiz?: number;
-    showAnswersWhen: 'immediately' | 'end_of_quiz';
+    showAnswersWhen: 'immediately' | 'after_quiz';
     roomType: 'public' | 'private';
   };
 }

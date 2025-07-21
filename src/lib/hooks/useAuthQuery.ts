@@ -3,6 +3,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { api, type ApiError } from '../api/client'
 import { queryKeys, cacheUtils } from '../queryClient'
 import { useNotificationStore } from '../stores'
+import { UserRole } from '../../../../shared/types'
 
 // Types for auth operations
 interface User {
@@ -40,7 +41,8 @@ interface RegisterData {
   name: string
   email: string
   password: string
-  role: 'student' | 'teacher'
+  role: UserRole
+  acceptTerms: boolean
 }
 
 interface UpdateProfileData {

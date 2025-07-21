@@ -1,13 +1,19 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { UserProfile, AuthUser, LoginCredentials, JwtPayload } from '../../../../shared/types'
+import { UserRole, UserStatus } from '../../../../shared/types'
 import { registerStoreResetter } from './utils/reset'
 
-// Types for Auth Store
+// Re-export shared types for convenience
+export type { UserProfile, UserRole, AuthUser, LoginCredentials, JwtPayload } from '../../../../shared/types'
+
+// Legacy type for backward compatibility
+// @deprecated Use UserProfile from shared types instead
 export interface User {
   id: string
   name: string
   email: string
-  role: 'teacher' | 'student' | 'admin'
+  role: UserRole
   avatar?: string
   preferences?: Record<string, any>
   lastLoginAt?: string
@@ -17,7 +23,7 @@ export interface User {
 export interface AuthState {
   // Authentication state
   isAuthenticated: boolean
-  user: User | null
+  user: UserProfile | null
   sessionToken: string | null
   refreshToken: string | null
   
@@ -39,20 +45,20 @@ export interface AuthState {
   lockUntil: number | null
   
   // Actions
-  setUser: (user: User | null) => void
+  setUser: (user: UserProfile | null) => void
   setTokens: (sessionToken: string | null, refreshToken?: string | null) => void
   setAuthenticated: (authenticated: boolean) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   
   // Auth operations
-  login: (email: string, password: string) => Promise<boolean>
+  login: (credentials: LoginCredentials) => Promise<boolean>
   logout: () => void
   refreshSession: () => Promise<boolean>
   checkSession: () => boolean
   
   // Account management
-  updateProfile: (updates: Partial<User>) => void
+  updateProfile: (updates: Partial<UserProfile>) => void
   incrementLoginAttempts: () => void
   resetLoginAttempts: () => void
   
@@ -129,7 +135,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       // Auth operations
-      login: async (email, password) => {
+      login: async (credentials) => {
         const state = get()
         
         // Check if account is locked
@@ -146,13 +152,40 @@ export const useAuthStore = create<AuthState>()(
           await new Promise(resolve => setTimeout(resolve, 1000))
           
           // Mock successful login
-          const mockUser: User = {
+          const mockUser: UserProfile = {
             id: 'user-123',
             name: 'Test User',
-            email,
-            role: email.includes('teacher') ? 'teacher' : 'student',
-            lastLoginAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
+            email: credentials.email,
+            role: credentials.email.includes('teacher') ? UserRole.TEACHER : UserRole.STUDENT,
+            status: UserStatus.ACTIVE,
+            isActive: true,
+            emailVerified: true,
+            preferences: {
+              theme: 'system',
+              notifications: {
+                email: true,
+                push: true,
+                quizStarted: true,
+                quizCompleted: true,
+                roomInvitation: true,
+                resultsAvailable: true
+              },
+              privacy: {
+                showProfile: true,
+                showStats: true,
+                allowDirectMessages: true,
+                shareAnalytics: true
+              },
+              accessibility: {
+                highContrast: false,
+                reducedMotion: false,
+                screenReader: false,
+                fontSize: 'medium'
+              }
+            },
+            lastLoginAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
           }
           
           const mockToken = 'mock-session-token'
@@ -286,7 +319,7 @@ registerStoreResetter(() => {
 // Computed selectors
 export const authSelectors = {
   // Check if user has specific role
-  hasRole: (state: AuthState, role: User['role']) => 
+  hasRole: (state: AuthState, role: UserRole) => 
     state.user?.role === role,
 
   // Check if user is teacher or admin

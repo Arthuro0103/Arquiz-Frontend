@@ -21,9 +21,10 @@ interface DeleteRoomButtonProps {
   roomName: string;
   isOwner: boolean;
   disabled?: boolean;
+  onDeleted?: (deletedRoomId: string) => void;
 }
 
-export function DeleteRoomButton({ roomId, roomName, isOwner, disabled = false }: DeleteRoomButtonProps) {
+export function DeleteRoomButton({ roomId, roomName, isOwner, disabled = false, onDeleted }: DeleteRoomButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
@@ -41,8 +42,13 @@ export function DeleteRoomButton({ roomId, roomName, isOwner, disabled = false }
       if (result.success) {
         toast.success(result.message);
         setIsOpen(false);
-        // Refresh the page to update the room list
-        router.refresh();
+        
+        // Call onDeleted callback if provided, otherwise refresh the page
+        if (onDeleted) {
+          onDeleted(roomId);
+        } else {
+          router.refresh();
+        }
       } else {
         toast.error(result.message);
       }

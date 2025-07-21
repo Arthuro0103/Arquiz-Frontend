@@ -15,22 +15,28 @@ export async function GET(
       );
     }
 
+    console.log('[RoomAPI] Fetching room details for:', roomId);
+
+    // Call the actual backend API
     const room = await getRoomDetails(roomId);
     
     if (!room) {
+      console.log('[RoomAPI] Room not found:', roomId);
       return NextResponse.json(
-        { success: false, error: 'Room not found or access denied' },
+        { success: false, error: 'Room not found' },
         { status: 404 }
       );
     }
 
+    console.log('[RoomAPI] Room found:', room.id);
+
     return NextResponse.json({
       success: true,
-      room
+      room: room
     });
 
   } catch (error) {
-    console.error('Error fetching room details:', error);
+    console.error('[RoomAPI] Error fetching room:', error);
     return NextResponse.json(
       { 
         success: false, 

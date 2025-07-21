@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit3, PlusCircle, Sparkles } from 'lucide-react';
-import { Quiz, QuizQuestion, QuizOption } from '@/types/quiz.types';
+import { Quiz, Question, QuizOption } from '@/types/quiz.types';
 import { QuestionDifficulty } from '@/types/quiz.types';
 
 // Tipos simulados
@@ -78,11 +78,13 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
     }
   };
   
-  const handleEditQuestion = (question: QuizQuestion) => {
+  const handleEditQuestion = (question: Question) => {
     setEditingQuestionId(question.id);
     setEditingQuestionText(question.text);
     setEditingOptions(JSON.parse(JSON.stringify(question.options))); // Deep copy
-    setEditingCorrectOptionId(question.correctOptionId);
+    // Find the correct option ID from isCorrect property
+    const correctOption = question.options.find(option => option.isCorrect);
+    setEditingCorrectOptionId(correctOption?.id || '');
     setEditingPoints(question.points || 1);
   };
 
@@ -140,7 +142,7 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
     const newOptionId = `new-option-${Date.now()}`; // ID único simples
     setEditingOptions(prevOptions => [
       ...prevOptions,
-      { id: newOptionId, text: 'Nova Opção' },
+      { id: newOptionId, text: 'Nova Opção', isCorrect: false },
     ]);
   };
 
@@ -190,14 +192,17 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
   // Função para adicionar uma nova pergunta
   const handleAddQuestion = () => {
     const newQuestionId = `new-question-${Date.now()}`;
-    const newQuestion: QuizQuestion = {
+    const newQuestion: Question = {
       id: newQuestionId,
       text: 'Nova Pergunta',
+      type: 'multiple_choice' as any,
+      difficulty: 'easy' as any,
       options: [
         { id: `new-opt-1-${Date.now()}`, text: 'Opção A', isCorrect: false },
         { id: `new-opt-2-${Date.now()}`, text: 'Opção B', isCorrect: false },
       ],
-      correctOptionId: '', 
+      points: 1,
+      order: 0, 
     };
     console.log('[QuizPreview] handleAddQuestion. New question object:', JSON.stringify(newQuestion, null, 2));
     console.log('[QuizPreview] handleAddQuestion. editableQuiz BEFORE update:', JSON.stringify(editableQuiz, null, 2));
@@ -428,12 +433,12 @@ export default function QuizPreview({ quiz, onQuizChange }: QuizPreviewProps) {
                         </span>
                       </div>
                     </div>
-                    <RadioGroup defaultValue={question.correctOptionId} className="space-y-2 mt-2 mb-4">
+                    <RadioGroup defaultValue={question.options.find(opt => opt.isCorrect)?.id || ''} className="space-y-2 mt-2 mb-4">
                       {question.options.map((option) => (
                         <div key={option.id} className="flex items-center space-x-2">
                           <RadioGroupItem value={option.id} id={`${question.id}-${option.id}`} />
                           <Label htmlFor={`${question.id}-${option.id}`}>{option.text}</Label>
-                          {option.id === question.correctOptionId && (
+                          {option.isCorrect && (
                               <span className="text-xs font-semibold text-green-600">(Correta)</span>
                           )}
                         </div>

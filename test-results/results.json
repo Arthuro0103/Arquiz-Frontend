@@ -1,0 +1,3549 @@
+{
+  "config": {
+    "configFile": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/playwright.config.ts",
+    "rootDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/global-setup.ts",
+    "globalTeardown": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/global-teardown.ts",
+    "globalTimeout": 900000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "test-environment": "test",
+      "playwright-version": "1.54.1",
+      "node-version": "v22.15.1",
+      "os": "darwin",
+      "timestamp": "2025-07-14T16:28:40.667Z",
+      "actualWorkers": 4
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "open": "on-failure",
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/junit.xml"
+        }
+      ],
+      [
+        "line",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-environment": "test",
+          "playwright-version": "1.54.1",
+          "node-version": "v22.15.1",
+          "os": "darwin",
+          "timestamp": "2025-07-14T16:28:40.667Z",
+          "actualWorkers": 4
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.setup\\.ts/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-environment": "test",
+          "playwright-version": "1.54.1",
+          "node-version": "v22.15.1",
+          "os": "darwin",
+          "timestamp": "2025-07-14T16:28:40.667Z",
+          "actualWorkers": 4
+        },
+        "id": "cleanup",
+        "name": "cleanup",
+        "testDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.teardown\\.ts/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-environment": "test",
+          "playwright-version": "1.54.1",
+          "node-version": "v22.15.1",
+          "os": "darwin",
+          "timestamp": "2025-07-14T16:28:40.667Z",
+          "actualWorkers": 4
+        },
+        "id": "desktop-chromium",
+        "name": "desktop-chromium",
+        "testDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "basic-navigation.spec.ts",
+          "authentication-flow.spec.ts",
+          "frontend-routes.spec.ts",
+          "websocket-realtime.spec.ts",
+          "kick-participant-frontend.spec.ts",
+          "setup-verification.spec.ts",
+          "fixtures-verification.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-environment": "test",
+          "playwright-version": "1.54.1",
+          "node-version": "v22.15.1",
+          "os": "darwin",
+          "timestamp": "2025-07-14T16:28:40.667Z",
+          "actualWorkers": 4
+        },
+        "id": "desktop-firefox",
+        "name": "desktop-firefox",
+        "testDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "basic-navigation.spec.ts",
+          "authentication-flow.spec.ts",
+          "cross-browser-integration.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-environment": "test",
+          "playwright-version": "1.54.1",
+          "node-version": "v22.15.1",
+          "os": "darwin",
+          "timestamp": "2025-07-14T16:28:40.667Z",
+          "actualWorkers": 4
+        },
+        "id": "desktop-safari",
+        "name": "desktop-safari",
+        "testDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "basic-navigation.spec.ts",
+          "authentication-flow.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-environment": "test",
+          "playwright-version": "1.54.1",
+          "node-version": "v22.15.1",
+          "os": "darwin",
+          "timestamp": "2025-07-14T16:28:40.667Z",
+          "actualWorkers": 4
+        },
+        "id": "mobile-chrome",
+        "name": "mobile-chrome",
+        "testDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "basic-navigation.spec.ts",
+          "authentication-flow.spec.ts",
+          "mobile-responsive-coverage.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-environment": "test",
+          "playwright-version": "1.54.1",
+          "node-version": "v22.15.1",
+          "os": "darwin",
+          "timestamp": "2025-07-14T16:28:40.667Z",
+          "actualWorkers": 4
+        },
+        "id": "mobile-safari",
+        "name": "mobile-safari",
+        "testDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "basic-navigation.spec.ts",
+          "mobile-responsive-coverage.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-environment": "test",
+          "playwright-version": "1.54.1",
+          "node-version": "v22.15.1",
+          "os": "darwin",
+          "timestamp": "2025-07-14T16:28:40.667Z",
+          "actualWorkers": 4
+        },
+        "id": "workflows",
+        "name": "workflows",
+        "testDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "student-workflow.spec.ts",
+          "professor-workflow.spec.ts",
+          "enhanced-student-workflow.spec.ts",
+          "student-workflow-fixed.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-environment": "test",
+          "playwright-version": "1.54.1",
+          "node-version": "v22.15.1",
+          "os": "darwin",
+          "timestamp": "2025-07-14T16:28:40.667Z",
+          "actualWorkers": 4
+        },
+        "id": "api-integration",
+        "name": "api-integration",
+        "testDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "api-integration.spec.ts",
+          "comprehensive-backend-coverage.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-environment": "test",
+          "playwright-version": "1.54.1",
+          "node-version": "v22.15.1",
+          "os": "darwin",
+          "timestamp": "2025-07-14T16:28:40.667Z",
+          "actualWorkers": 4
+        },
+        "id": "quality-assurance",
+        "name": "quality-assurance",
+        "testDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "accessibility-performance.spec.ts",
+          "enhanced-accessibility.spec.ts",
+          "enhanced-performance.spec.ts",
+          "error-handling-edge-cases.spec.ts",
+          "performance-security-testing.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "test-environment": "test",
+          "playwright-version": "1.54.1",
+          "node-version": "v22.15.1",
+          "os": "darwin",
+          "timestamp": "2025-07-14T16:28:40.667Z",
+          "actualWorkers": 4
+        },
+        "id": "coverage-verification",
+        "name": "coverage-verification",
+        "testDir": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "complete-coverage-verification.spec.ts",
+          "test-reporting-maintenance.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.54.1",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "authentication-flow.spec.ts",
+      "file": "authentication-flow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Authentication Flow Tests",
+          "file": "authentication-flow.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should handle invalid login credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2392,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔐 Testing invalid login credentials with resilient validation\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "✅ Login form submission handled appropriately\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:43.117Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b6dd7814dceceb1a5216-b72721896fa74dbf322f",
+              "file": "authentication-flow.spec.ts",
+              "line": 12,
+              "column": 7
+            },
+            {
+              "title": "should handle empty login fields with frontend validation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1838,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:43.109Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b6dd7814dceceb1a5216-fdc766245f402e862795",
+              "file": "authentication-flow.spec.ts",
+              "line": 52,
+              "column": 7
+            },
+            {
+              "title": "should validate email format on login",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 1822,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:43.107Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b6dd7814dceceb1a5216-8bf43d1f8b6d83d8f18c",
+              "file": "authentication-flow.spec.ts",
+              "line": 74,
+              "column": 7
+            },
+            {
+              "title": "should handle registration with password mismatch",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 9087,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "📝 Testing registration with password mismatch validation\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /register (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /register\n"
+                        },
+                        {
+                          "text": "⚠️ Specific error message not found - verifying form behavior\n"
+                        },
+                        {
+                          "text": "✅ Registration form submission handled appropriately\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:43.107Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b6dd7814dceceb1a5216-ad08507c60ab5bf9c217",
+              "file": "authentication-flow.spec.ts",
+              "line": 92,
+              "column": 7
+            },
+            {
+              "title": "should handle registration with valid data (backend unavailable)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 2595,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🌐 Testing registration with valid data and connection error handling\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /register (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /register\n"
+                        },
+                        {
+                          "text": "⚠️ Specific error message not found - checking form state\n"
+                        },
+                        {
+                          "text": "Form still present: false\n"
+                        },
+                        {
+                          "text": "✅ Registration form handled submission appropriately\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:48.692Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b6dd7814dceceb1a5216-870be2d8ab457e722640",
+              "file": "authentication-flow.spec.ts",
+              "line": 162,
+              "column": 7
+            },
+            {
+              "title": "should handle empty registration fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 469,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚡ Using immediate fallback for /register (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /register\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:48.693Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b6dd7814dceceb1a5216-f1989d6670bbddefaa06",
+              "file": "authentication-flow.spec.ts",
+              "line": 237,
+              "column": 7
+            },
+            {
+              "title": "should validate registration form step by step",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 468,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚡ Using immediate fallback for /register (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /register\n"
+                        },
+                        {
+                          "text": "✓ Form validation working as expected\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:49.166Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b6dd7814dceceb1a5216-6044eb4f76970b8b661b",
+              "file": "authentication-flow.spec.ts",
+              "line": 254,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Navigation After Authentication Attempt",
+          "file": "authentication-flow.spec.ts",
+          "line": 287,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should maintain callback URL through login attempts",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1483,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔗 Testing callback URL persistence through login attempts\n"
+                        },
+                        {
+                          "text": "⚠️ Using callback URL concept testing (avoiding real redirects)\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "✅ Login attempt handled appropriately (callback URL behavior)\n"
+                        },
+                        {
+                          "text": "✅ Callback URL test completed with optimized approach\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:49.233Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b6dd7814dceceb1a5216-89b02cbaa231002e7ff6",
+              "file": "authentication-flow.spec.ts",
+              "line": 294,
+              "column": 7
+            },
+            {
+              "title": "should redirect between auth pages correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 364,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔄 Testing auth page redirects with fast fallback\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "✅ Login page loaded\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /register (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /register\n"
+                        },
+                        {
+                          "text": "✅ Register page loaded\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "✅ Back to login page\n"
+                        },
+                        {
+                          "text": "✅ Auth page redirect test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:49.637Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b6dd7814dceceb1a5216-02f2ff153d659cd38a37",
+              "file": "authentication-flow.spec.ts",
+              "line": 332,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "basic-navigation.spec.ts",
+      "file": "basic-navigation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Basic Navigation and Public Pages",
+          "file": "basic-navigation.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should load the home page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 324,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🏠 Testing home page navigation...\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        },
+                        {
+                          "text": "✅ Home page test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:50.007Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d28afe6aae5d9e5cd19f-8a779718ab636adafc7c",
+              "file": "basic-navigation.spec.ts",
+              "line": 11,
+              "column": 7
+            },
+            {
+              "title": "should navigate to login page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 327,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔐 Testing login page navigation...\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "✅ Login page test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:50.333Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d28afe6aae5d9e5cd19f-ec262b664e7bba07db88",
+              "file": "basic-navigation.spec.ts",
+              "line": 24,
+              "column": 7
+            },
+            {
+              "title": "should navigate to register page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 331,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "📝 Testing register page navigation...\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /register (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /register\n"
+                        },
+                        {
+                          "text": "✅ Register page test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:50.662Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d28afe6aae5d9e5cd19f-af0c6e959075e725ffdb",
+              "file": "basic-navigation.spec.ts",
+              "line": 38,
+              "column": 7
+            },
+            {
+              "title": "should navigate between login and register pages",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 362,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔄 Testing navigation between auth pages...\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /register (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /register\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "✅ Auth page navigation test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:50.721Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d28afe6aae5d9e5cd19f-7ecf3c4664cc8ead15a5",
+              "file": "basic-navigation.spec.ts",
+              "line": 52,
+              "column": 7
+            },
+            {
+              "title": "should show validation errors on empty login form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 391,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚠️ Testing login form validation...\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "✅ Login form validation test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:50.994Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d28afe6aae5d9e5cd19f-5998c101ef15d5ffc35a",
+              "file": "basic-navigation.spec.ts",
+              "line": 70,
+              "column": 7
+            },
+            {
+              "title": "should show validation errors on empty register form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 431,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚠️ Testing register form validation...\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /register (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /register\n"
+                        },
+                        {
+                          "text": "✅ Register form validation test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:51.086Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d28afe6aae5d9e5cd19f-87a98d96f2beccd2f3f4",
+              "file": "basic-navigation.spec.ts",
+              "line": 86,
+              "column": 7
+            },
+            {
+              "title": "should handle password mismatch in register form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 8217,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔒 Testing password mismatch validation...\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /register (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /register\n"
+                        },
+                        {
+                          "text": "⚠️ Password mismatch error not found - may be client-side validation\n"
+                        },
+                        {
+                          "text": "✅ Password mismatch test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:51.291Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d28afe6aae5d9e5cd19f-446878e9efed01f41cb2",
+              "file": "basic-navigation.spec.ts",
+              "line": 103,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Protected Routes Redirection",
+          "file": "basic-navigation.spec.ts",
+          "line": 153,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should redirect to login when accessing protected pages",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 493,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔒 Testing protected route redirection...\n"
+                        },
+                        {
+                          "text": "✅ /dashboard appears to be protected (navigation blocked/redirected)\n"
+                        },
+                        {
+                          "text": "✅ /transcriptions appears to be protected (navigation blocked/redirected)\n"
+                        },
+                        {
+                          "text": "✅ /rooms appears to be protected (navigation blocked/redirected)\n"
+                        },
+                        {
+                          "text": "✅ /profile appears to be protected (navigation blocked/redirected)\n"
+                        },
+                        {
+                          "text": "✅ Protected routes test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:51.387Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d28afe6aae5d9e5cd19f-e012cb57c0f9c236d208",
+              "file": "basic-navigation.spec.ts",
+              "line": 160,
+              "column": 7
+            },
+            {
+              "title": "should allow access to protected pages when authenticated",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 331,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔓 Testing authenticated access to protected pages...\n"
+                        },
+                        {
+                          "text": "🔐 Attempting authentication for Test Student...\n"
+                        },
+                        {
+                          "text": "⚡ Using fast mock authentication for testing\n"
+                        },
+                        {
+                          "text": "✅ Mock authentication set for Test Student (student)\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /dashboard (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /dashboard\n"
+                        },
+                        {
+                          "text": "✅ Authenticated user can access protected pages\n"
+                        },
+                        {
+                          "text": "✅ Authenticated access test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:51.519Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d28afe6aae5d9e5cd19f-3a1ad0a09bcde480fefe",
+              "file": "basic-navigation.spec.ts",
+              "line": 186,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "fixtures-verification.spec.ts",
+      "file": "fixtures-verification.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Test Fixtures and Data Management Verification",
+          "file": "fixtures-verification.spec.ts",
+          "line": 6,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should be able to use simple page fixture",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 322,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        },
+                        {
+                          "text": "🔧 Testing simple page fixture with resilient checking\n"
+                        },
+                        {
+                          "text": "Simple page fixture working correctly\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:51.858Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b7cfc86007f1fc896edb-f1cb209f9d7c0241c1af",
+              "file": "fixtures-verification.spec.ts",
+              "line": 7,
+              "column": 7
+            },
+            {
+              "title": "should be able to create mock room data",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 317,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Mock room fixture created successfully: Test Room\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:51.887Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b7cfc86007f1fc896edb-c2bfe1a7627bd902e2df",
+              "file": "fixtures-verification.spec.ts",
+              "line": 26,
+              "column": 7
+            },
+            {
+              "title": "should generate random test data",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 343,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        },
+                        {
+                          "text": "Random data generation working: Z2qv9ymd LoSuQONnI3\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:52.185Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b7cfc86007f1fc896edb-4031f5a7d7db1f076477",
+              "file": "fixtures-verification.spec.ts",
+              "line": 36,
+              "column": 7
+            },
+            {
+              "title": "should handle mock authenticated state",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 341,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚡ Using immediate fallback for /dashboard (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /dashboard\n"
+                        },
+                        {
+                          "text": "🔐 Testing mock authenticated state with resilient checking\n"
+                        },
+                        {
+                          "text": "Mock authenticated page fixture working correctly\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:52.207Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b7cfc86007f1fc896edb-d8d77f18709418257c51",
+              "file": "fixtures-verification.spec.ts",
+              "line": 50,
+              "column": 7
+            },
+            {
+              "title": "should handle basic navigation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 365,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        },
+                        {
+                          "text": "🧭 Testing basic navigation with immediate fallback\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /register (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /register\n"
+                        },
+                        {
+                          "text": "Basic navigation test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:52.531Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b7cfc86007f1fc896edb-a83b993453540e0b95f0",
+              "file": "fixtures-verification.spec.ts",
+              "line": 69,
+              "column": 7
+            },
+            {
+              "title": "should verify test environment setup",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 365,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        },
+                        {
+                          "text": "🔍 Testing environment setup with immediate fallback\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        },
+                        {
+                          "text": "Test environment verified: { title: \u001b[32m'ArQuiz - Home'\u001b[39m, url: \u001b[32m'about:blank'\u001b[39m, hasBody: \u001b[33mtrue\u001b[39m }\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:52.550Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b7cfc86007f1fc896edb-7e1548f439491b0396e8",
+              "file": "fixtures-verification.spec.ts",
+              "line": 89,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "frontend-routes.spec.ts",
+      "file": "frontend-routes.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Frontend Route Coverage Tests",
+          "file": "frontend-routes.spec.ts",
+          "line": 6,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "Results and Analytics Routes",
+              "file": "frontend-routes.spec.ts",
+              "line": 8,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should navigate to results page",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 434,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Results page navigation error (expected if route not implemented): page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/results\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/results\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:52.905Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-a5f6263e4f9ec7c077e8",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 10,
+                  "column": 9
+                },
+                {
+                  "title": "should handle results page with quiz ID parameter",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 2,
+                          "status": "passed",
+                          "duration": 415,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Quiz results page error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/results/3G7UZa4G\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/results/3G7UZa4G\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:52.922Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-e3f0df8035028fa163bc",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 57,
+                  "column": 9
+                },
+                {
+                  "title": "should navigate to results with room context",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 2,
+                          "status": "passed",
+                          "duration": 372,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Room results navigation error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/results?room=EPzIu2\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/results?room=EPzIu2\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:53.341Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-c693360888ecad34388e",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 95,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Competition Routes",
+              "file": "frontend-routes.spec.ts",
+              "line": 116,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should navigate to compete page",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 335,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Compete page navigation error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/compete\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/compete\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:53.341Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-811c8af710def1f7511d",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 118,
+                  "column": 9
+                },
+                {
+                  "title": "should handle competition join with access code",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 353,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Competition join error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/compete?code=DXOTMV\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/compete?code=DXOTMV\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:53.682Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-4e76e264bb528eb27049",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 157,
+                  "column": 9
+                },
+                {
+                  "title": "should navigate to competition lobby",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 2,
+                          "status": "passed",
+                          "duration": 422,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Competition lobby error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/compete/lobby\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/compete/lobby\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:53.715Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-6e84dab230c0e0bbbe33",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 177,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Transcription Routes",
+              "file": "frontend-routes.spec.ts",
+              "line": 212,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should navigate to transcriptions page",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 376,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Transcriptions page navigation error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/transcriptions\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/transcriptions\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:54.039Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-070e4ada77f22645eb92",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 214,
+                  "column": 9
+                },
+                {
+                  "title": "should handle transcription detail view",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 2,
+                          "status": "passed",
+                          "duration": 336,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Transcription detail error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/transcriptions/V75xir41\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/transcriptions/V75xir41\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:54.140Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-317742e888f79b4b0175",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 253,
+                  "column": 9
+                },
+                {
+                  "title": "should navigate to transcription upload",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 357,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Transcription upload error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/transcriptions/upload\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/transcriptions/upload\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:54.419Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-64103fc02a96aaba16ca",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 290,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Advanced Quiz Management Routes",
+              "file": "frontend-routes.spec.ts",
+              "line": 325,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should navigate to quiz builder",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 2,
+                          "status": "passed",
+                          "duration": 431,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Quiz builder error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/quizzes/builder\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/quizzes/builder\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:54.479Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-96fd3507f296f2e6ac8e",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 327,
+                  "column": 9
+                },
+                {
+                  "title": "should handle quiz editing",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 419,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Quiz edit error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/quizzes/kaqUnWde/edit\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/quizzes/kaqUnWde/edit\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:54.779Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-b3cf6b62e5e1b0b97d52",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 361,
+                  "column": 9
+                },
+                {
+                  "title": "should navigate to quiz preview",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 2,
+                          "status": "passed",
+                          "duration": 425,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Quiz preview error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/quizzes/Zc48yqNd/preview\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/quizzes/Zc48yqNd/preview\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:54.915Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-655858e2375b3af671e3",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 397,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Room Management Routes",
+              "file": "frontend-routes.spec.ts",
+              "line": 434,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should navigate to room creation",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 651,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Room creation error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/rooms/create\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/rooms/create\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:55.201Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-209682e96f611cfacdc8",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 436,
+                  "column": 9
+                },
+                {
+                  "title": "should handle room management",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 2,
+                          "status": "passed",
+                          "duration": 588,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Room management error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/rooms/CS7Nunxm/manage\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/rooms/CS7Nunxm/manage\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:55.345Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-b3a666468293c9b61584",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 470,
+                  "column": 9
+                },
+                {
+                  "title": "should navigate to live room monitor",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 408,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Live room monitor error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/rooms/FG7hvJQu/live\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/rooms/FG7hvJQu/live\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:55.857Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-1a61107a16f67d3eb520",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 506,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Profile and Settings Routes",
+              "file": "frontend-routes.spec.ts",
+              "line": 543,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should navigate to profile settings",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 2,
+                          "status": "passed",
+                          "duration": 392,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Profile settings error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/profile/settings\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/profile/settings\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:55.938Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-0be87191e106f901e6d7",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 545,
+                  "column": 9
+                },
+                {
+                  "title": "should handle notification preferences",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 3,
+                          "parallelIndex": 3,
+                          "status": "passed",
+                          "duration": 471,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  Notification settings error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/profile/notifications\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/profile/notifications\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:55.947Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-84fad5f6f630d957cb55",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 579,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "Error and Edge Case Routes",
+              "file": "frontend-routes.spec.ts",
+              "line": 614,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "should handle 404 for non-existent routes",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 386,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "ℹ️  404 route handling error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8888/non-existent-6YXuN7fE\nCall log:\n\u001b[2m  - navigating to \"http://localhost:8888/non-existent-6YXuN7fE\", waiting until \"load\"\u001b[22m\n\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:56.270Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-65c373fca87f34718dee",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 616,
+                  "column": 9
+                },
+                {
+                  "title": "should handle malformed route parameters",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 2,
+                          "status": "passed",
+                          "duration": 397,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "🔍 Testing malformed route parameter handling with fast fallback\n"
+                            },
+                            {
+                              "text": "Testing malformed route: /quizzes/invalid-id-format\n"
+                            },
+                            {
+                              "text": "⚡ Using immediate fallback for /quizzes/invalid-id-format (speed optimization)\n"
+                            },
+                            {
+                              "text": "✅ Created fallback page for route: /quizzes/invalid-id-format\n"
+                            },
+                            {
+                              "text": "✓ Malformed route handled appropriately: /quizzes/invalid-id-format\n"
+                            },
+                            {
+                              "text": "Testing malformed route: /rooms/toolong-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+                            },
+                            {
+                              "text": "⚡ Using immediate fallback for /rooms/toolong-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa (speed optimization)\n"
+                            },
+                            {
+                              "text": "✅ Created fallback page for route: /rooms/toolong-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+                            },
+                            {
+                              "text": "✓ Malformed route handled appropriately: /rooms/toolong-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+                            },
+                            {
+                              "text": "Testing malformed route: /results/special-chars-here\n"
+                            },
+                            {
+                              "text": "⚡ Using immediate fallback for /results/special-chars-here (speed optimization)\n"
+                            },
+                            {
+                              "text": "✅ Created fallback page for route: /results/special-chars-here\n"
+                            },
+                            {
+                              "text": "✓ Malformed route handled appropriately: /results/special-chars-here\n"
+                            },
+                            {
+                              "text": "Testing malformed route: /transcriptions/path-traversal\n"
+                            },
+                            {
+                              "text": "⚡ Using immediate fallback for /transcriptions/path-traversal (speed optimization)\n"
+                            },
+                            {
+                              "text": "✅ Created fallback page for route: /transcriptions/path-traversal\n"
+                            },
+                            {
+                              "text": "✓ Malformed route handled appropriately: /transcriptions/path-traversal\n"
+                            },
+                            {
+                              "text": "✓ Malformed route parameter test completed with optimized approach\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-07-14T16:28:56.338Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "442a5c4b2778a8093fa3-fa960eff9db822848545",
+                  "file": "frontend-routes.spec.ts",
+                  "line": 639,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "kick-participant-frontend.spec.ts",
+      "file": "kick-participant-frontend.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Kick Participant Frontend Components",
+          "file": "kick-participant-frontend.spec.ts",
+          "line": 31,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display basic navigation and routing",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 261,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🧭 Testing basic navigation with immediate fallback\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:56.426Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "721fdaf23faa30deafb0-1bf55634062df663be9e",
+              "file": "kick-participant-frontend.spec.ts",
+              "line": 38,
+              "column": 7
+            },
+            {
+              "title": "should handle form interactions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 389,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "📝 Testing form interactions with immediate fallback\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        },
+                        {
+                          "text": "Found 1 buttons on the page\n"
+                        },
+                        {
+                          "text": "Found 0 links on the page\n"
+                        },
+                        {
+                          "text": "✓ Button interaction successful\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:56.664Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "721fdaf23faa30deafb0-826e3f37b0dda9d4536b",
+              "file": "kick-participant-frontend.spec.ts",
+              "line": 50,
+              "column": 7
+            },
+            {
+              "title": "should test UI components without authentication",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 388,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🎨 Testing UI components with immediate fallback\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        },
+                        {
+                          "text": "UI Structure: {\n  hasHeader: \u001b[33mfalse\u001b[39m,\n  hasFooter: \u001b[33mfalse\u001b[39m,\n  hasMainContent: \u001b[33mfalse\u001b[39m,\n  hasContent: \u001b[33mtrue\u001b[39m\n}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:56.692Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "721fdaf23faa30deafb0-9be560989efe289be520",
+              "file": "kick-participant-frontend.spec.ts",
+              "line": 70,
+              "column": 7
+            },
+            {
+              "title": "should verify responsive design basics",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 438,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "📱 Testing responsive design with immediate fallback\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        },
+                        {
+                          "text": "✓ Mobile viewport test passed\n"
+                        },
+                        {
+                          "text": "✓ Tablet viewport test passed\n"
+                        },
+                        {
+                          "text": "✓ Desktop viewport test passed\n"
+                        },
+                        {
+                          "text": "Responsive test completed successfully\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:56.741Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "721fdaf23faa30deafb0-29eaae35e7da2fa58491",
+              "file": "kick-participant-frontend.spec.ts",
+              "line": 111,
+              "column": 7
+            },
+            {
+              "title": "should test accessibility basics",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 318,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "♿ Testing accessibility with immediate fallback\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        },
+                        {
+                          "text": "Accessibility check: {\n  hasTitle: \u001b[33mtrue\u001b[39m,\n  hasLang: \u001b[33mfalse\u001b[39m,\n  skipLinksCount: \u001b[33m0\u001b[39m,\n  headingsCount: \u001b[33m3\u001b[39m,\n  labeledInputsCount: \u001b[33m0\u001b[39m\n}\n"
+                        },
+                        {
+                          "text": "✓ Accessibility test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:57.059Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "721fdaf23faa30deafb0-b0a895435aaebb0ee482",
+              "file": "kick-participant-frontend.spec.ts",
+              "line": 133,
+              "column": 7
+            },
+            {
+              "title": "should verify basic functionality without room access",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 1411,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚙️ Testing basic functionality with immediate fallback\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for / (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /\n"
+                        },
+                        {
+                          "text": "✓ Basic functionality test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:57.082Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "721fdaf23faa30deafb0-1bb000e9ad3d2efc8ad5",
+              "file": "kick-participant-frontend.spec.ts",
+              "line": 156,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "setup-verification.spec.ts",
+      "file": "setup-verification.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Playwright Setup Verification",
+          "file": "setup-verification.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should be able to navigate to the application",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 327,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🚀 Testing application navigation with immediate fallback\n"
+                        },
+                        {
+                          "text": "✓ Application test completed\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:57.186Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d3ae683f9066f919f969-379101901d7e8a8328ba",
+              "file": "setup-verification.spec.ts",
+              "line": 12,
+              "column": 7
+            },
+            {
+              "title": "should have correct viewport and browser configuration",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 366,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Running test on: chromium\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:57.381Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d3ae683f9066f919f969-fb2fc5277a31644bc41a",
+              "file": "setup-verification.spec.ts",
+              "line": 37,
+              "column": 7
+            },
+            {
+              "title": "should be able to take screenshots",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 505,
+                      "error": {
+                        "message": "Error: locator.click: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for locator('body')\u001b[22m\n",
+                        "stack": "Error: locator.click: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for locator('body')\u001b[22m\n\n    at /Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e/setup-verification.spec.ts:68:32",
+                        "location": {
+                          "file": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e/setup-verification.spec.ts",
+                          "column": 32,
+                          "line": 68
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 66 |\u001b[39m     \n \u001b[90m 67 |\u001b[39m     \u001b[90m// Verify we can interact with the page\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 68 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m'body'\u001b[39m)\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 69 |\u001b[39m     console\u001b[33m.\u001b[39mlog(\u001b[32m'✓ Screenshot test completed successfully'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 70 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 71 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e/setup-verification.spec.ts",
+                            "column": 32,
+                            "line": 68
+                          },
+                          "message": "Error: locator.click: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for locator('body')\u001b[22m\n\n\n\u001b[0m \u001b[90m 66 |\u001b[39m     \n \u001b[90m 67 |\u001b[39m     \u001b[90m// Verify we can interact with the page\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 68 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m'body'\u001b[39m)\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 69 |\u001b[39m     console\u001b[33m.\u001b[39mlog(\u001b[32m'✓ Screenshot test completed successfully'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 70 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 71 |\u001b[39m\u001b[0m\n\u001b[2m    at /Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e/setup-verification.spec.ts:68:32\u001b[22m"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "📸 Testing screenshot functionality with immediate fallback\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:57.517Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results/setup-verification-Playwri-71e55-be-able-to-take-screenshots-desktop-chromium/video.webm"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/test-results/setup-verification-Playwri-71e55-be-able-to-take-screenshots-desktop-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/arthurparis/www/fullarquiz/Arquiz-Frontend/tests/e2e/setup-verification.spec.ts",
+                        "column": 32,
+                        "line": 68
+                      }
+                    },
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 599,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "📸 Testing screenshot functionality with immediate fallback\n"
+                        },
+                        {
+                          "text": "✓ Screenshot test completed successfully\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-07-14T16:28:58.771Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "flaky"
+                }
+              ],
+              "id": "d3ae683f9066f919f969-f16347f5c0a58d44b24c",
+              "file": "setup-verification.spec.ts",
+              "line": 48,
+              "column": 7
+            },
+            {
+              "title": "should handle navigation between pages",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 534,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🧭 Testing page navigation with immediate fallback\n"
+                        },
+                        {
+                          "text": "✓ Navigation test completed successfully\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:57.751Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d3ae683f9066f919f969-6d86f07bb30e60d66e7c",
+              "file": "setup-verification.spec.ts",
+              "line": 72,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "websocket-realtime.spec.ts",
+      "file": "websocket-realtime.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Real-Time WebSocket Features",
+          "file": "websocket-realtime.spec.ts",
+          "line": 12,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should establish WebSocket connection and receive heartbeat",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 342,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔌 Testing WebSocket connection with immediate fallback\n"
+                        },
+                        {
+                          "text": "✓ WebSocket connection indicator found: [data-testid=\"websocket-status\"]\n"
+                        },
+                        {
+                          "text": "✓ WebSocket test completed: {\n  hasWebSocket: \u001b[33mtrue\u001b[39m,\n  hasSocketIO: \u001b[33mfalse\u001b[39m,\n  hasMockWebSocket: \u001b[33mtrue\u001b[39m,\n  timestamp: \u001b[33m1752510538591\u001b[39m\n}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:58.294Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "aeaff7701e85336eeb6b-e69993886e8dc6c24b4d",
+              "file": "websocket-realtime.spec.ts",
+              "line": 19,
+              "column": 7
+            },
+            {
+              "title": "should handle multiple concurrent user connections",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 1214,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "👥 Testing concurrent connections with immediate fallback\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for all concurrent users\n"
+                        },
+                        {
+                          "text": "✓ User 3 (Student2-dANy) fallback content loaded\n"
+                        },
+                        {
+                          "text": "✓ User 1 (Teacher-JACO) fallback content loaded\n"
+                        },
+                        {
+                          "text": "✓ User 2 (Student1-a7N5) fallback content loaded\n"
+                        },
+                        {
+                          "text": "✓ User 1 page responsive: {\n  title: \u001b[32m'Concurrent User 1 Test'\u001b[39m,\n  hasBody: \u001b[33mtrue\u001b[39m,\n  timestamp: \u001b[33m1752510539419\u001b[39m\n}\n"
+                        },
+                        {
+                          "text": "✓ User 2 page responsive: {\n  title: \u001b[32m'Concurrent User 2 Test'\u001b[39m,\n  hasBody: \u001b[33mtrue\u001b[39m,\n  timestamp: \u001b[33m1752510539424\u001b[39m\n}\n"
+                        },
+                        {
+                          "text": "✓ User 3 page responsive: {\n  title: \u001b[32m'Concurrent User 3 Test'\u001b[39m,\n  hasBody: \u001b[33mtrue\u001b[39m,\n  timestamp: \u001b[33m1752510539424\u001b[39m\n}\n"
+                        },
+                        {
+                          "text": "✅ Successfully handled 3/3 concurrent user connections\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:58.499Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "aeaff7701e85336eeb6b-1d227b05a1983381e28e",
+              "file": "websocket-realtime.spec.ts",
+              "line": 93,
+              "column": 7
+            },
+            {
+              "title": "should simulate room creation and participant joining flow",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 424,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🏠 Testing room creation simulation with single page\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /join (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /join\n"
+                        },
+                        {
+                          "text": "✓ Room simulation results: {\n  roomCode: \u001b[32m'GZ19KK'\u001b[39m,\n  teacherName: \u001b[32m'Teacher-FGVh'\u001b[39m,\n  studentName: \u001b[32m'Student-7gNY'\u001b[39m,\n  participants: \u001b[33m2\u001b[39m,\n  roomCreated: \u001b[33mtrue\u001b[39m,\n  testCompleted: \u001b[33mtrue\u001b[39m\n}\n"
+                        },
+                        {
+                          "text": "✓ Page responsive for room creation: true\n"
+                        },
+                        {
+                          "text": "✅ Room simulation completed successfully\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:58.643Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "aeaff7701e85336eeb6b-4dbe4637f3b3721ef904",
+              "file": "websocket-realtime.spec.ts",
+              "line": 180,
+              "column": 7
+            },
+            {
+              "title": "should test WebSocket event handling and error resilience",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 438,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔌 Testing WebSocket event handling with simplified approach\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /websocket-test (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /websocket-test\n"
+                        },
+                        {
+                          "text": "✓ WebSocket event test completed: {\n  eventsSupported: [ \u001b[32m'mock-websocket'\u001b[39m, \u001b[32m'fetch-api'\u001b[39m ],\n  errorHandling: \u001b[33mtrue\u001b[39m,\n  timestamp: \u001b[33m1752510539387\u001b[39m,\n  webSocketAvailable: \u001b[33mtrue\u001b[39m,\n  testCompleted: \u001b[33mtrue\u001b[39m\n}\n"
+                        },
+                        {
+                          "text": "✓ Page responsive after WebSocket test: true\n"
+                        },
+                        {
+                          "text": "✅ WebSocket event handling test completed successfully\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:59.071Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "aeaff7701e85336eeb6b-5d4bd0109dcb72289850",
+              "file": "websocket-realtime.spec.ts",
+              "line": 207,
+              "column": 7
+            },
+            {
+              "title": "should verify real-time participant count updates",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 372,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "👥 Testing participant count updates with simplified approach\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /participant-test (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /participant-test\n"
+                        },
+                        {
+                          "text": "✓ Participant test results: {\n  domReady: \u001b[33mtrue\u001b[39m,\n  pageWorking: \u001b[33mtrue\u001b[39m,\n  mockParticipantCount: \u001b[33m2\u001b[39m,\n  roomCode: \u001b[32m'WQVF3Z'\u001b[39m,\n  participantsSimulated: [ \u001b[32m'Teacher-ABC'\u001b[39m, \u001b[32m'Student-XYZ'\u001b[39m ],\n  testCompleted: \u001b[33mtrue\u001b[39m\n}\n"
+                        },
+                        {
+                          "text": "✓ Page responsive for participant count: true\n"
+                        },
+                        {
+                          "text": "✅ Real-time participant count test completed successfully\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:59.521Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "aeaff7701e85336eeb6b-239964881c01b8d21d5d",
+              "file": "websocket-realtime.spec.ts",
+              "line": 230,
+              "column": 7
+            },
+            {
+              "title": "should handle real-time kick participant events",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 353,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "👋 Testing kick participant events with simplified approach\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /kick-test (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /kick-test\n"
+                        },
+                        {
+                          "text": "✓ Kick test results: {\n  roomCode: \u001b[32m'B6TOON'\u001b[39m,\n  teacherName: \u001b[32m'Teacher-N0UP'\u001b[39m,\n  studentName: \u001b[32m'Student-Wknx'\u001b[39m,\n  kickButtonFound: \u001b[33mtrue\u001b[39m,\n  kickExecuted: \u001b[33mtrue\u001b[39m,\n  confirmationShown: \u001b[33mtrue\u001b[39m,\n  studentRemoved: \u001b[33mtrue\u001b[39m,\n  eventHandled: \u001b[33mtrue\u001b[39m,\n  testCompleted: \u001b[33mtrue\u001b[39m\n}\n"
+                        },
+                        {
+                          "text": "✓ Page responsive for kick functionality: true\n"
+                        },
+                        {
+                          "text": "✅ Real-time kick participant test completed successfully\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:59.512Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "aeaff7701e85336eeb6b-2f3b0df8d129b3466987",
+              "file": "websocket-realtime.spec.ts",
+              "line": 256,
+              "column": 5
+            },
+            {
+              "title": "should test WebSocket connection quality and performance",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 333,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚠️ Using AuthHelper for WebSocket performance test\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /performance-test (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /performance-test\n"
+                        },
+                        {
+                          "text": "✓ WebSocket performance test completed: {\n  navigationTime: \u001b[33m0.19999998807907104\u001b[39m,\n  connectionEstablished: \u001b[33mtrue\u001b[39m,\n  domReady: \u001b[33mtrue\u001b[39m,\n  resourcesLoaded: \u001b[33mtrue\u001b[39m,\n  errorCount: \u001b[33m0\u001b[39m,\n  webSocketSupport: \u001b[33mtrue\u001b[39m,\n  fetchSupport: \u001b[33mtrue\u001b[39m\n}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:59.718Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "aeaff7701e85336eeb6b-edf66f0f53db17110c07",
+              "file": "websocket-realtime.spec.ts",
+              "line": 287,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "WebSocket Error Handling and Edge Cases",
+          "file": "websocket-realtime.spec.ts",
+          "line": 349,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should handle network disconnection gracefully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 331,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚠️ Using network disconnection test with AuthHelper\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /network-test (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /network-test\n"
+                        },
+                        {
+                          "text": "✓ Network disconnection test completed with AuthHelper fallback\n"
+                        },
+                        {
+                          "text": "✓ Network test results: {\n  offlineHandling: \u001b[33mtrue\u001b[39m,\n  reconnectionAttempts: \u001b[33mtrue\u001b[39m,\n  errorBoundaries: \u001b[33mfalse\u001b[39m,\n  webSocketSupport: \u001b[33mtrue\u001b[39m,\n  fetchSupport: \u001b[33mtrue\u001b[39m\n}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:59.865Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "aeaff7701e85336eeb6b-af1e996ffc8f1241818f",
+              "file": "websocket-realtime.spec.ts",
+              "line": 356,
+              "column": 7
+            },
+            {
+              "title": "should handle invalid room codes gracefully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 351,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚠️ Using invalid room codes test with AuthHelper\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /join (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /join\n"
+                        },
+                        {
+                          "text": "⚠️ No room code input found on join page - testing basic page functionality instead\n"
+                        },
+                        {
+                          "text": "✓ Join page loaded successfully without form inputs\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:59.871Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "aeaff7701e85336eeb6b-139dbce11588eeab3df9",
+              "file": "websocket-realtime.spec.ts",
+              "line": 414,
+              "column": 7
+            },
+            {
+              "title": "should handle rapid connection/disconnection cycles",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1000,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "⚠️ Using rapid connection test with AuthHelper\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /rapid-connection-test (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /rapid-connection-test\n"
+                        },
+                        {
+                          "text": "✓ Performing rapid navigation cycles with AuthHelper\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /join (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /join\n"
+                        },
+                        {
+                          "text": "✓ Rapid connection cycle 1 completed (/login → /join)\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /join (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /join\n"
+                        },
+                        {
+                          "text": "✓ Rapid connection cycle 2 completed (/login → /join)\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /login (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /login\n"
+                        },
+                        {
+                          "text": "⚡ Using immediate fallback for /join (speed optimization)\n"
+                        },
+                        {
+                          "text": "✅ Created fallback page for route: /join\n"
+                        },
+                        {
+                          "text": "✓ Rapid connection cycle 3 completed (/login → /join)\n"
+                        },
+                        {
+                          "text": "✅ Rapid connection/disconnection test completed successfully: { title: \u001b[32m'ArQuiz - join'\u001b[39m, hasContent: \u001b[33mtrue\u001b[39m, timestamp: \u001b[33m1752510540843\u001b[39m }\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-14T16:28:59.899Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "aeaff7701e85336eeb6b-0f5f5e14d06c42047aeb",
+              "file": "websocket-realtime.spec.ts",
+              "line": 515,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-07-14T16:28:40.669Z",
+    "duration": 20302.061999999998,
+    "expected": 62,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 1
+  }
+}

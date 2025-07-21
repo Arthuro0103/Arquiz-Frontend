@@ -4,22 +4,19 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { Socket, io } from 'socket.io-client';
 import { toast } from 'sonner';
-import { ArQuizWebSocket } from '@/types/websocket.types';
+import { ConnectionConfig, WebSocketError, ConnectionMetrics } from '@/types/websocket.types';
+import { ArQuizWebSocketEnterprise } from '@/types/websocket-enterprise.types';
 
 // Enhanced WebSocket Hook with enterprise features
-export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.ConnectionConfig>) {
+export function useEnhancedWebSocket(config?: Partial<ConnectionConfig>) {
   // Configuration with sensible defaults
-  const defaultConfig: ArQuizWebSocket.ConnectionConfig = {
+  const defaultConfig: ConnectionConfig = {
     maxRetries: 5,
     baseDelay: 1000,
     maxDelay: 30000,
     backoffMultiplier: 2,
     heartbeatInterval: 30000,
-    connectionTimeout: 20000,
-    authTimeout: 10000,
     debugMode: process.env.NODE_ENV === 'development',
-    enableCompression: true,
-    forcePolling: false,
   };
 
   const finalConfig = useMemo(() => ({ ...defaultConfig, ...config }), [config]);
@@ -33,7 +30,7 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const eventHandlersRef = useRef<Map<string, Set<Function>>>(new Map());
-  const metricsRef = useRef<ArQuizWebSocket.ConnectionMetrics>({
+  const metricsRef = useRef<ConnectionMetrics>({
     connectionStartTime: 0,
     lastConnectTime: null,
     heartbeatLatency: 0,
@@ -44,27 +41,25 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
     avgLatency: 0,
     packetsSent: 0,
     packetsReceived: 0,
-    bytesTransferred: 0,
-    connectionQuality: 'disconnected',
   });
 
   // State management
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [connectionQuality, setConnectionQuality] = useState<ArQuizWebSocket.ConnectionMetrics['connectionQuality']>('disconnected');
-  const [lastError, setLastError] = useState<ArQuizWebSocket.WebSocketError | null>(null);
+  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'disconnected'>('disconnected');
+  const [lastError, setLastError] = useState<WebSocketError | null>(null);
   const [currentRoom, setCurrentRoom] = useState<string | null>(null);
-  const [participants, setParticipants] = useState<ArQuizWebSocket.ParticipantInfo[]>([]);
-  const [diagnostics, setDiagnostics] = useState<ArQuizWebSocket.DiagnosticInfo | null>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [diagnostics, setDiagnostics] = useState<any | null>(null);
 
   // Enhanced error handling
   const createError = useCallback((
-    type: ArQuizWebSocket.WebSocketError['type'],
+    type: WebSocketError['type'],
     code: string,
     message: string,
     details?: any,
     userAction?: string
-  ): ArQuizWebSocket.WebSocketError => {
+  ): WebSocketError => {
     return {
       type,
       code,
@@ -76,14 +71,12 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
         room: currentRoom,
         connected: isConnected,
         participants: participants.length
-      },
-      retryable: type !== 'authentication',
-      severity: type === 'connection' ? 'high' : 'medium'
+      }
     };
   }, [currentRoom, isConnected, participants.length]);
 
   // Connection quality assessment
-  const assessConnectionQuality = useCallback((latency: number, consecutiveFailures: number): ArQuizWebSocket.ConnectionMetrics['connectionQuality'] => {
+  const assessConnectionQuality = useCallback((latency: number, consecutiveFailures: number): 'excellent' | 'good' | 'poor' | 'disconnected' => {
     if (!isConnected) return 'disconnected';
     if (consecutiveFailures > 3) return 'poor';
     if (latency < 100) return 'excellent';
@@ -92,13 +85,12 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
   }, [isConnected]);
 
   // Enhanced metrics tracking
-  const updateMetrics = useCallback((updates: Partial<ArQuizWebSocket.ConnectionMetrics>) => {
+  const updateMetrics = useCallback((updates: Partial<ConnectionMetrics>) => {
     metricsRef.current = { ...metricsRef.current, ...updates };
     
     if (updates.heartbeatLatency !== undefined) {
       const quality = assessConnectionQuality(updates.heartbeatLatency, 0);
       setConnectionQuality(quality);
-      metricsRef.current.connectionQuality = quality;
     }
   }, [assessConnectionQuality]);
 
@@ -190,7 +182,7 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
           updateMetrics({ packetsSent: metricsRef.current.packetsSent + 1 });
         }
       } catch (error) {
-        const wsError = createError('client', 'EMIT_FAILED', 'Failed to emit event', { event, error });
+        const wsError = createError('event_handling', 'EMIT_FAILED', 'Failed to emit event', { event, error });
         setLastError(wsError);
         reject(wsError);
       }
@@ -212,12 +204,12 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
         
         // Enhanced connection configuration
         const socket = io(`${baseUrl}/rooms`, {
-          transports: finalConfig.forcePolling ? ['polling'] : ['websocket', 'polling'],
-          upgrade: !finalConfig.forcePolling,
+          transports: ['websocket', 'polling'],
+          upgrade: true,
           rememberUpgrade: true,
           autoConnect: false,
           reconnection: false, // Handle manually
-          timeout: finalConfig.connectionTimeout,
+          timeout: 20000,
           forceNew: true,
           
           auth: {
@@ -243,7 +235,7 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
           setLastError(error);
           socket.disconnect();
           reject(error);
-        }, finalConfig.connectionTimeout);
+        }, 20000);
 
         // Enhanced event handlers
         socket.on('connect', () => {
@@ -349,6 +341,90 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
           }
         });
 
+        // ✅ ENHANCED: Handle being kicked from room with automatic navigation
+        socket.on('kicked_from_room', (data: any) => {
+          console.log('👢 [useEnhancedWebSocket] KICK EVENT RECEIVED:', data);
+          console.log('👢 [useEnhancedWebSocket] Current window location:', typeof window !== 'undefined' ? window.location.pathname : 'SSR');
+          
+          // ✅ IMPROVED: Show clear kick notification alert
+          toast.error(`You have been removed from the room`, {
+            description: data.reason || 'Contact the room administrator for more information',
+            duration: 8000, // Longer duration so user can read it
+            position: 'top-center',
+          });
+          
+          // Clean up room state
+          setCurrentRoom(null);
+          setParticipants([]);
+          setIsConnected(false);
+          
+          // ✅ SIMPLIFIED: Always redirect from room pages - remove complex logic
+          if (typeof window !== 'undefined') {
+            const currentPath = window.location.pathname;
+            console.log('👢 [useEnhancedWebSocket] Current path for redirection:', currentPath);
+            
+            // ✅ FIXED: Simplified check - if we're in any room-related page, redirect
+            const isInRoomPages = currentPath.includes('/rooms/') || currentPath.startsWith('/rooms/');
+            
+            console.log('👢 [useEnhancedWebSocket] Redirection check:', {
+              currentPath,
+              isInRoomPages,
+              willRedirect: isInRoomPages
+            });
+            
+            if (isInRoomPages) {
+              console.log('👢 [useEnhancedWebSocket] EXECUTING IMMEDIATE REDIRECTION to /rooms');
+              
+              // ✅ IMMEDIATE: Use location.href for reliable redirection
+              try {
+                console.log('👢 [useEnhancedWebSocket] Using window.location.href for immediate redirection');
+                window.location.href = '/rooms';
+              } catch (redirectError) {
+                console.error('👢 [useEnhancedWebSocket] Redirection failed, trying alternative:', redirectError);
+                // Alternative: Force page reload to rooms
+                window.location.replace('/rooms');
+              }
+            } else {
+              console.log('👢 [useEnhancedWebSocket] Not in room pages, skipping redirection');
+            }
+          } else {
+            console.log('👢 [useEnhancedWebSocket] Window not available (SSR), skipping redirection');
+          }
+          
+          // Disconnect the socket to prevent reconnection
+          if (socket?.connected) {
+            console.log('👢 [useEnhancedWebSocket] Disconnecting socket after kick');
+            socket.disconnect();
+          }
+          
+          if (finalConfig.debugMode) {
+            console.log('👢 Kick Event Details:', {
+              reason: data.reason,
+              roomId: data.roomId,
+              timestamp: data.timestamp,
+              redirectedTo: '/rooms',
+              currentPath: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
+            });
+          }
+        });
+
+        // ✅ ALSO: Handle participant_kicked events (when someone else is kicked)
+        socket.on('participant_kicked', (data: any) => {
+          if (finalConfig.debugMode) {
+            console.log('📢 [useEnhancedWebSocket] Participant kicked notification:', data);
+          }
+          
+          // Update participant list by removing the kicked participant
+          setParticipants(prev => prev.filter(p => p.id !== data.participantId));
+          
+          // Show notification if not initiated by current user
+          if (!data.initiatedByYou) {
+            toast.info(`${data.participantName} was removed from the room`, {
+              duration: 3000,
+            });
+          }
+        });
+
         // Re-attach existing event handlers
         for (const [event, handlers] of eventHandlersRef.current.entries()) {
           for (const handler of handlers) {
@@ -444,11 +520,11 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
   }, [stopHeartbeat, finalConfig.debugMode]);
 
   // Room management methods
-  const joinRoom = useCallback(async (data: ArQuizWebSocket.JoinRoomPayload): Promise<ArQuizWebSocket.JoinRoomResponse> => {
+  const joinRoom = useCallback(async (data: { accessCode: string; displayName?: string }): Promise<any> => {
     return emit('join_room', data);
   }, [emit]);
 
-  const leaveRoom = useCallback(async (data: ArQuizWebSocket.LeaveRoomPayload): Promise<ArQuizWebSocket.LeaveRoomResponse> => {
+  const leaveRoom = useCallback(async (data: { roomId: string }): Promise<any> => {
     const result = await emit('leave_room', data);
     setCurrentRoom(null);
     setParticipants([]);
@@ -461,16 +537,56 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
   }, [emit]);
 
   // Quiz control methods
-  const startQuiz = useCallback(async (data: ArQuizWebSocket.StartQuizPayload): Promise<ArQuizWebSocket.StartQuizResponse> => {
+  const startQuiz = useCallback(async (data: { roomId: string; questionIndex?: number }): Promise<any> => {
     return emit('start_quiz', data);
   }, [emit]);
 
-  const submitAnswer = useCallback(async (data: ArQuizWebSocket.SubmitAnswerPayload): Promise<ArQuizWebSocket.SubmitAnswerResponse> => {
+  const submitAnswer = useCallback(async (data: { roomId: string; questionId: string; answer: any; participantId: string }): Promise<any> => {
     return emit('submit_answer', data);
   }, [emit]);
 
+  // ✅ ADDED: Kick participant method for consistency
+  const kickParticipant = useCallback(async (data: { roomId: string; participantId: string; reason?: string }): Promise<any> => {
+    console.log('👢 [useEnhancedWebSocket] Kicking participant:', data);
+    return emit('kick_participant', data);
+  }, [emit]);
+
+  // ✅ DEBUG: Test function to simulate kick events for debugging
+  const simulateKickEvent = useCallback((reason: string = 'Test kick') => {
+    console.log('👢 [useEnhancedWebSocket] SIMULATING KICK EVENT for testing');
+    
+    // Simulate the kicked_from_room event data
+    const mockKickData = {
+      reason,
+      roomId: currentRoom,
+      timestamp: new Date().toISOString(),
+      source: 'debug-simulation'
+    };
+    
+    // Manually trigger the kick handler as if the event was received
+    if (socketRef.current) {
+      socketRef.current.emit('debug_simulate_kick', mockKickData);
+      
+      // Also manually call the kick handler for immediate testing
+      setTimeout(() => {
+        console.log('👢 [useEnhancedWebSocket] TRIGGERING MANUAL KICK HANDLER');
+        // Find the kick handler and call it directly
+        const kickHandler = socketRef.current?.listeners('kicked_from_room')?.[0];
+        if (kickHandler && typeof kickHandler === 'function') {
+          kickHandler(mockKickData);
+        } else {
+          console.log('👢 [useEnhancedWebSocket] No kick handler found, creating manual redirection');
+          // Manual redirection for testing
+          if (typeof window !== 'undefined') {
+            window.location.href = '/rooms';
+          }
+        }
+      }, 100);
+    }
+  }, [currentRoom]);
+
   // Diagnostic methods
-  const getDiagnostics = useCallback((): ArQuizWebSocket.DiagnosticInfo => {
+  const getDiagnostics = useCallback((): any => {
     const socket = socketRef.current;
     const metrics = metricsRef.current;
 
@@ -505,12 +621,50 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
   useEffect(() => {
     if (session?.accessToken && !isConnected && !isConnecting) {
       connect().catch(error => {
+        // ✅ FIXED: Better error handling with proper error object handling
+        const errorDetails = {
+          message: error?.message || error?.toString() || 'Connection failed',
+          code: error?.code || error?.type || 'CONNECTION_ERROR',
+          name: error?.name || 'Unknown Error',
+          timestamp: new Date().toISOString(),
+          userInfo: {
+            hasSession: !!session?.accessToken,
+            userId: session?.user?.id,
+            email: session?.user?.email,
+            role: session?.user?.role,
+          },
+          network: {
+            backendUrl: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:7777',
+            userAgent: typeof window !== 'undefined' ? window.navigator?.userAgent?.slice(0, 100) : 'unknown',
+            online: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown',
+          },
+          stack: error?.stack?.slice(0, 500) || 'No stack trace',
+          originalError: error ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : 'No error object',
+        };
+
         if (finalConfig.debugMode) {
-          console.error('Auto-connect failed:', error);
+          console.error('🔌 Auto-connect failed with details:', errorDetails);
+        } else {
+          // ✅ IMPROVED: More user-friendly console message in production
+          console.warn('🔌 WebSocket auto-connect failed - this is normal if the backend is not running');
+        }
+
+        // ✅ IMPROVED: Only show user-facing error for repeated failures
+        const now = Date.now();
+        const lastErrorKey = 'ws-auto-connect-last-error';
+        const lastErrorTime = parseInt(localStorage.getItem(lastErrorKey) || '0');
+        
+        // Show error toast only if last error was more than 30 seconds ago (prevents spam)
+        if (now - lastErrorTime > 30000) {
+          toast.error('Connection issue - please check your internet connection', {
+            duration: 4000,
+            position: 'bottom-right',
+          });
+          localStorage.setItem(lastErrorKey, now.toString());
         }
       });
     }
-  }, [session, isConnected, isConnecting, connect, finalConfig.debugMode]);
+  }, [session?.accessToken, isConnected, isConnecting, connect, finalConfig.debugMode]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -545,10 +699,14 @@ export function useEnhancedWebSocket(config?: Partial<ArQuizWebSocket.Connection
     // Quiz methods
     startQuiz,
     submitAnswer,
+    kickParticipant,
     
     // Diagnostics
     getDiagnostics,
     getMetrics: () => ({ ...metricsRef.current }),
+    
+    // ✅ DEBUG: Add test function to public API
+    simulateKickEvent,
     
     // Socket instance (for advanced usage)
     socket: socketRef.current,

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DeleteRoomButton } from '@/components/DeleteRoomButton';
 import { toast } from 'sonner';
 import { useSession, signOut } from 'next-auth/react';
 import { cn } from '@/lib/utils';
@@ -29,7 +30,7 @@ interface CompetitionRoom {
   readonly timeMode: 'per_question' | 'per_quiz';
   readonly timePerQuestion?: number;
   readonly timePerQuiz?: number;
-  readonly showAnswersWhen: 'immediately' | 'end_of_quiz';
+  readonly showAnswersWhen: 'immediately' | 'after_quiz';
   readonly roomType: 'public' | 'private';
   readonly accessCode: string;
   readonly shareableLink?: string;
@@ -481,6 +482,11 @@ export default function CompetitionRoomsListPage() {
     loadRooms(retryCount);
   }, [retryCount]);
 
+  // Handler for room deletion
+  const handleRoomDeleted = useCallback((deletedRoomId: string) => {
+    setRooms(prevRooms => prevRooms.filter(room => room.id !== deletedRoomId));
+  }, []);
+
   // Loading state
   if (loading && retryCount === 0) {
     return <RoomsPageSkeleton />;
@@ -706,6 +712,20 @@ export default function CompetitionRoomsListPage() {
                           {isTeacher ? 'Ver Detalhes' : 'Entrar'}
                         </Link>
                       </DropdownMenuItem>
+                      {/* Add delete button only for room owners */}
+                      {session?.user?.id === room.createdBy && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <div className="px-2 py-1">
+                            <DeleteRoomButton 
+                              roomId={room.id}
+                              roomName={room.name}
+                              isOwner={session?.user?.id === room.createdBy}
+                              onDeleted={handleRoomDeleted}
+                            />
+                          </div>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                       </div>

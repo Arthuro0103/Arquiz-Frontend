@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { Socket, io } from 'socket.io-client';
 import { toast } from 'sonner';
-import { ArQuizWebSocket } from '@/types/websocket.types';
+import { ConnectionConfig, WebSocketError, ConnectionMetrics } from '@/types/websocket.types';
 import { ArQuizWebSocketEnterprise } from '@/types/websocket-enterprise.types';
 
 // Enterprise WebSocket Hook with AI-powered features
@@ -226,10 +226,10 @@ export function useEnterpriseWebSocket(config?: Partial<ArQuizWebSocketEnterpris
   // Enterprise state management
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [connectionQuality, setConnectionQuality] = useState<ArQuizWebSocket.ConnectionMetrics['connectionQuality']>('disconnected');
-  const [lastError, setLastError] = useState<ArQuizWebSocket.WebSocketError | null>(null);
+  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'disconnected'>('disconnected');
+  const [lastError, setLastError] = useState<WebSocketError | null>(null);
   const [currentRoom, setCurrentRoom] = useState<string | null>(null);
-  const [participants, setParticipants] = useState<ArQuizWebSocket.ParticipantInfo[]>([]);
+  const [participants, setParticipants] = useState<any[]>([]);
   
   // Enterprise-specific state
   const [clusterStatus, setClusterStatus] = useState<'healthy' | 'degraded' | 'critical'>('healthy');
@@ -262,7 +262,18 @@ export function useEnterpriseWebSocket(config?: Partial<ArQuizWebSocketEnterpris
   });
 
   // Advanced metrics tracking
-  const metricsRef = useRef<ArQuizWebSocket.ConnectionMetrics & {
+  const metricsRef = useRef<{
+    connectionStartTime: number;
+    lastConnectTime: number | null;
+    heartbeatLatency: number;
+    connectionAttempts: number;
+    totalReconnects: number;
+    lastHeartbeat: number;
+    uptime: number;
+    avgLatency: number;
+    packetsSent: number;
+    packetsReceived: number;
+    bytesTransferred: number;
     securityEvents: number;
     anomaliesDetected: number;
     optimizationsApplied: number;
@@ -280,7 +291,6 @@ export function useEnterpriseWebSocket(config?: Partial<ArQuizWebSocketEnterpris
     packetsSent: 0,
     packetsReceived: 0,
     bytesTransferred: 0,
-    connectionQuality: 'disconnected',
     securityEvents: 0,
     anomaliesDetected: 0,
     optimizationsApplied: 0,
@@ -550,14 +560,12 @@ export function useEnterpriseWebSocket(config?: Partial<ArQuizWebSocketEnterpris
         });
 
         socket.on('connect_error', (error) => {
-          const wsError: ArQuizWebSocket.WebSocketError = {
+          const wsError: WebSocketError = {
             type: 'connection',
             code: 'CONNECT_ERROR',
             message: error.message,
             details: error,
             timestamp: Date.now(),
-            retryable: true,
-            severity: 'high',
           };
           setLastError(wsError);
           setIsConnecting(false);
@@ -630,14 +638,12 @@ export function useEnterpriseWebSocket(config?: Partial<ArQuizWebSocketEnterpris
         socket.connect();
 
       } catch (error) {
-        const wsError: ArQuizWebSocket.WebSocketError = {
+        const wsError: WebSocketError = {
           type: 'connection',
           code: 'SETUP_FAILED',
           message: 'Failed to setup enterprise connection',
           details: error,
           timestamp: Date.now(),
-          retryable: true,
-          severity: 'high',
         };
         setLastError(wsError);
         setIsConnecting(false);
@@ -656,13 +662,11 @@ export function useEnterpriseWebSocket(config?: Partial<ArQuizWebSocketEnterpris
 
     const attempt = metricsRef.current.totalReconnects;
     if (attempt >= 10) { // Increased max retries for enterprise
-      const error: ArQuizWebSocket.WebSocketError = {
+      const error: WebSocketError = {
         type: 'connection',
         code: 'MAX_RETRIES',
         message: 'Maximum reconnection attempts reached',
         timestamp: Date.now(),
-        retryable: false,
-        severity: 'critical',
       };
       setLastError(error);
       return;
@@ -790,14 +794,12 @@ export function useEnterpriseWebSocket(config?: Partial<ArQuizWebSocketEnterpris
   const emit = useCallback((event: string, ...args: any[]): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (!socketRef.current?.connected) {
-        const error: ArQuizWebSocket.WebSocketError = {
+        const error: WebSocketError = {
           type: 'connection',
           code: 'NOT_CONNECTED',
           message: 'Socket not connected',
           details: { event },
           timestamp: Date.now(),
-          retryable: true,
-          severity: 'medium',
         };
         setLastError(error);
         reject(error);
@@ -829,14 +831,12 @@ export function useEnterpriseWebSocket(config?: Partial<ArQuizWebSocketEnterpris
         metricsRef.current.packetsSent++;
 
       } catch (error) {
-        const wsError: ArQuizWebSocket.WebSocketError = {
-          type: 'client',
+        const wsError: WebSocketError = {
+          type: 'event_handling',
           code: 'EMIT_FAILED',
           message: 'Failed to emit event',
           details: { event, error },
           timestamp: Date.now(),
-          retryable: true,
-          severity: 'medium',
         };
         setLastError(wsError);
         reject(wsError);

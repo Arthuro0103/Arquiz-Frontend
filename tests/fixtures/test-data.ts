@@ -183,7 +183,7 @@ export const SAMPLE_QUIZ_CONFIGS = {
     questionCount: 10,
     difficulty: 'easy',
     shuffleQuestions: true,
-    showAnswersWhen: 'end_of_quiz'
+          showAnswersWhen: 'after_quiz'
   },
   
   comprehensive_exam: {

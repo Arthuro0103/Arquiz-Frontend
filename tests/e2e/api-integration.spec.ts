@@ -467,7 +467,7 @@ test.describe('API Endpoint Integration Tests', () => {
             timeMode: 'per_question',
             timePerQuestion: 30,
             shuffleQuestions: true,
-            showAnswersWhen: 'end_of_quiz',
+            showAnswersWhen: 'after_quiz',
             roomType: 'public',
             allowLateJoin: false,
           },
